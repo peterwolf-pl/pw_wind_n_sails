@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "pw_wind_n_sails",
+  "version": "${version}",
+  "name": "Peterwolf's Wind & Sails",
+  "description": "Realistic but playable wind and sailing system for Minecraft.",
+  "authors": ["Piotrek"],
+  "license": "CC0-1.0",
+  "environment": "*",
+  "icon": "assets/pw_wind_n_sails/icon.png",
+  "entrypoints": {
+    "main": ["com.piotrek.pwwindnsails.WindAndSailsMod"],
+    "client": ["com.piotrek.pwwindnsails.client.WindAndSailsClient"]
+  },
+  "mixins": [
+    "pw_wind_n_sails.mixins.json",
+    "pw_wind_n_sails.client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

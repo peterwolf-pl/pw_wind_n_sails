@@ -1,0 +1,405 @@
+{
+  "project": {
+    "name": "Peterwolf's Wind & Sails",
+    "type": "Minecraft Fabric mod",
+    "minecraft_version": "26.3",
+    "primary_goal": "Create a realistic but playable wind and sailing system for Minecraft, starting with a small single-mast sailing boat controlled by rudder and mainsail sheet."
+  },
+
+  "master_instruction": {
+    "role": "You are the lead architect and integration agent for a Minecraft Fabric 26.3 mod called Peterwolf's Wind & Sails.",
+    "objective": "Design, implement, test and integrate the complete mod. Split work between specialized agents whenever tasks can run independently. Do not let multiple agents modify the same files at the same time unless explicitly coordinated.",
+    "rules": [
+      "Inspect the existing repository before changing architecture.",
+      "Use actual Minecraft 26.3 Fabric APIs and current mappings. Do not invent class names or obsolete APIs.",
+      "Prefer server-authoritative gameplay logic.",
+      "Keep rendering and input handling client-side.",
+      "Keep wind simulation deterministic enough that server and clients agree about wind conditions.",
+      "Avoid unnecessary dependencies.",
+      "Keep systems modular so future boats, sails, storms and sailing ships can reuse them.",
+      "Use low or no reasoning agents for file inspection, repetitive edits, asset registration and simple tests.",
+      "Use medium reasoning for implementation.",
+      "Use high reasoning for wind physics, sailing physics, networking architecture and difficult bugs.",
+      "Run builds and tests after each major integration stage.",
+      "Do not stop after scaffolding. Produce a playable MVP."
+    ]
+  },
+
+  "reference_design": {
+    "boat": {
+      "length_blocks": 3.0,
+      "width_blocks": 1.5,
+      "type": "small traditional single-mast sailing boat",
+      "rig": "single mast with mainsail and boom",
+      "sail_area_blocks_squared": 5.0,
+      "reference_image": "Use the sailing boat drawing supplied with the task as a visual proportion reference. It shows a small hull, mast, boom, triangular mainsail and stern rudder."
+    }
+  },
+
+  "core_systems": {
+    "wind": {
+      "description": "Introduce one coherent wind system used by the entire mod.",
+      "requirements": [
+        "Wind has direction and strength.",
+        "Cloud movement must visually agree with the wind direction.",
+        "Prefer making clouds use the actual world wind vector rather than maintaining two independent systems.",
+        "If Minecraft cloud rendering cannot safely be controlled, make the underlying wind direction follow the cloud drift direction while still allowing variable wind strength.",
+        "Wind direction must change gradually rather than randomly jumping.",
+        "Wind strength must change smoothly over time.",
+        "Wind state must exist per world or dimension.",
+        "Expose wind data through a reusable WindManager or equivalent API for future mods and entities.",
+        "Synchronize relevant wind state to clients."
+      ]
+    },
+
+    "gusts": {
+      "description": "Add natural short-term wind variation.",
+      "requirements": [
+        "Wind can temporarily increase or decrease in strength.",
+        "Gusts may shift wind direction by several to roughly 10-18 degrees.",
+        "Direction changes must interpolate smoothly.",
+        "A gust must have a beginning, peak and decay.",
+        "Do not instantly rotate the global wind vector.",
+        "Strength variation should be noticeable while sailing.",
+        "Keep parameters configurable."
+      ],
+      "suggested_parameters": {
+        "maximum_direction_shift_degrees": 18,
+        "typical_strength_multiplier": "1.10-1.40",
+        "minimum_gust_duration_seconds": 2,
+        "maximum_gust_duration_seconds": 12
+      }
+    },
+
+    "wind_visualizer": {
+      "description": "Allow the player to visualize wind directly on the water.",
+      "controls": {
+        "default_key": "TAB"
+      },
+      "requirements": [
+        "TAB toggles wind hints.",
+        "Do not unnecessarily break the normal multiplayer player-list behavior.",
+        "If required, implement short-press TAB for wind visualization while preserving long-press or normal multiplayer list behavior.",
+        "The keybind must remain configurable.",
+        "When enabled, render lightweight arrows or streaks slightly above nearby water surfaces.",
+        "Arrows point in the actual wind direction.",
+        "Arrow movement, length, spacing or animation should communicate wind strength.",
+        "Gusts should be visible through temporary changes in direction and speed.",
+        "Only render within a reasonable radius around the player.",
+        "Do not create entities for every arrow.",
+        "Use client-side rendering or particles optimized for large numbers of indicators."
+      ]
+    }
+  },
+
+  "sailboat": {
+    "entity": {
+      "length_blocks": 3.0,
+      "width_blocks": 1.5,
+      "passengers_initial": 1,
+      "components": [
+        "hull",
+        "mast",
+        "boom",
+        "mainsail",
+        "rudder"
+      ],
+      "requirements": [
+        "The boat must float naturally on water.",
+        "It must not use normal Minecraft boat propulsion.",
+        "Primary propulsion comes from the sail and wind.",
+        "Boat orientation and velocity must be server authoritative.",
+        "Client renders smooth interpolation.",
+        "The sail, boom and rudder must visibly move according to their actual control state."
+      ]
+    },
+
+    "controls": {
+      "rudder": {
+        "left": "A",
+        "right": "D",
+        "behavior": "Control rudder angle, not direct boat rotation."
+      },
+      "mainsheet": {
+        "tighten": "W",
+        "ease": "S",
+        "behavior": "Control the maximum permitted boom and mainsail angle."
+      },
+      "principle": "The player controls a rudder and a mainsheet. The player does not directly control boat velocity."
+    },
+
+    "sheet_system": {
+      "requirements": [
+        "Represent mainsheet position internally from 0.0 to 1.0.",
+        "0.0 means sheet pulled in tightly.",
+        "1.0 means sheet fully eased.",
+        "The sheet determines maximum boom angle.",
+        "The sail should respond visually to apparent wind but cannot rotate farther than allowed by the current sheet setting.",
+        "Display a small unobtrusive mainsheet indicator while controlling the boat."
+      ]
+    },
+
+    "rudder_system": {
+      "requirements": [
+        "Represent rudder position continuously rather than as left, center and right states only.",
+        "Rudder effectiveness depends on boat velocity through the water.",
+        "At almost zero speed the rudder should have very little authority.",
+        "At higher speed the rudder becomes more effective.",
+        "Do not rotate the boat instantly when A or D is pressed.",
+        "Rudder animation must match the actual rudder angle."
+      ]
+    }
+  },
+
+  "sailing_physics": {
+    "goal": "Create believable sailing behavior without requiring a full CFD simulation.",
+
+    "requirements": [
+      "Calculate true wind.",
+      "Calculate boat velocity.",
+      "Calculate apparent wind from true wind and boat velocity.",
+      "Calculate apparent wind angle relative to the hull.",
+      "Determine mainsail angle from apparent wind and mainsheet limit.",
+      "Generate aerodynamic sail force from wind speed and sail angle.",
+      "Separate aerodynamic force into forward and lateral components.",
+      "Hull and keel resistance should strongly reduce sideways sliding.",
+      "Apply water drag.",
+      "Use rudder force based on water flow across the rudder.",
+      "Allow momentum during turns.",
+      "Allow tacking through the wind when sufficient momentum exists.",
+      "A boat pointing almost directly into the wind should lose propulsion.",
+      "Sailing directly upwind must not work.",
+      "Beam reach and broad reach should provide strong usable propulsion.",
+      "Running downwind must work but should behave differently from reaching."
+    ],
+
+    "recommended_model": {
+      "no_go_zone_degrees_from_wind": "approximately 35-45",
+      "apparent_wind": "trueWind - boatVelocity",
+      "side_slip": "strongly damped by hull or keel resistance",
+      "rudder_force": "approximately proportional to water speed squared, with sensible gameplay limits",
+      "sail_force": "derived from apparent wind speed, apparent wind angle, sail trim and a simplified lift/drag curve"
+    },
+
+    "important_behavior": [
+      "Do not implement sailing as a simple wind-direction speed multiplier.",
+      "The mainsheet must matter.",
+      "Bad sail trim must reduce acceleration.",
+      "Correct trimming should be noticeably faster.",
+      "A gust should physically affect the boat.",
+      "A directional gust should require rudder or sail correction.",
+      "Keep constants centralized so handling can be tuned without rewriting physics."
+    ]
+  },
+
+  "boat_feedback": {
+    "requirements": [
+      "Animate the boom.",
+      "Animate the sail according to boom angle.",
+      "Animate the rudder.",
+      "Add subtle boat heel based on lateral sail force.",
+      "Initial MVP does not need capsizing.",
+      "Add subtle water wake based on velocity.",
+      "Provide visual feedback for current sheet position.",
+      "Optionally show wind direction relative to the boat when wind hints are enabled."
+    ]
+  },
+
+  "architecture": {
+    "suggested_modules": [
+      "wind simulation",
+      "gust simulation",
+      "wind synchronization",
+      "wind visualization",
+      "sailing physics",
+      "boat entity",
+      "boat controls",
+      "boat networking",
+      "boat rendering",
+      "boat model and animations",
+      "configuration",
+      "tests"
+    ],
+
+    "future_expansion": [
+      "multiple sail types",
+      "jibs",
+      "multiple masts",
+      "reefing",
+      "storms",
+      "waves",
+      "larger ships",
+      "wind-dependent smoke and particles",
+      "wind affecting other Peterwolf mods",
+      "weather fronts",
+      "regional wind",
+      "wind instruments",
+      "flags and windsocks"
+    ]
+  },
+
+  "agent_distribution": {
+    "agent_1_architecture": {
+      "reasoning": "high",
+      "task": "Inspect repository and Minecraft 26.3 Fabric environment. Define architecture, data ownership, server/client boundaries, synchronization protocol and integration plan."
+    },
+
+    "agent_2_wind": {
+      "reasoning": "high",
+      "task": "Implement WindManager, smooth wind evolution, wind strength, cloud relationship, deterministic gusts and server/client synchronization."
+    },
+
+    "agent_3_sailing_physics": {
+      "reasoning": "high",
+      "task": "Implement apparent wind, sail forces, hull resistance, water drag, mainsheet physics, rudder forces, tacking and sailing behavior."
+    },
+
+    "agent_4_boat_entity": {
+      "reasoning": "medium",
+      "task": "Implement the 3 x 1.5 block sailboat entity, interaction, mounting, state persistence, flotation and integration with the sailing physics system."
+    },
+
+    "agent_5_controls_networking": {
+      "reasoning": "medium",
+      "task": "Implement rudder and mainsheet controls, packets, validation, server-authoritative state and configurable keybindings."
+    },
+
+    "agent_6_rendering": {
+      "reasoning": "medium",
+      "task": "Implement sailboat renderer, articulated mast/boom/sail/rudder animations, heel and water wake."
+    },
+
+    "agent_7_wind_visualization": {
+      "reasoning": "medium",
+      "task": "Implement TAB-toggle wind hints over water. Optimize rendering and clearly communicate direction, strength and gusts."
+    },
+
+    "agent_8_assets_registration": {
+      "reasoning": "low",
+      "task": "Handle item/entity registration, translations, basic assets, recipes if needed, configuration entries and repetitive project wiring."
+    },
+
+    "agent_9_testing": {
+      "reasoning": "medium",
+      "task": "Create automated and manual test scenarios for wind evolution, gusts, networking, boat controls and sailing behavior. Run builds and report regressions."
+    }
+  },
+
+  "development_stages": {
+    "stage_1": {
+      "goal": "Wind foundation",
+      "deliverables": [
+        "WindManager",
+        "direction",
+        "strength",
+        "smooth evolution",
+        "gusts",
+        "client synchronization",
+        "debug command or debug HUD"
+      ]
+    },
+
+    "stage_2": {
+      "goal": "Wind visualization",
+      "deliverables": [
+        "TAB toggle",
+        "water arrows",
+        "strength visualization",
+        "gust visualization",
+        "render distance optimization"
+      ]
+    },
+
+    "stage_3": {
+      "goal": "Sailboat entity",
+      "deliverables": [
+        "3 block hull",
+        "1.5 block width",
+        "mast",
+        "boom",
+        "approximately 5 block squared mainsail",
+        "rudder",
+        "mounting and basic flotation"
+      ]
+    },
+
+    "stage_4": {
+      "goal": "Functional sailing physics",
+      "deliverables": [
+        "apparent wind",
+        "mainsheet",
+        "rudder",
+        "sail force",
+        "drag",
+        "side resistance",
+        "points of sail",
+        "tacking"
+      ]
+    },
+
+    "stage_5": {
+      "goal": "Visual polish",
+      "deliverables": [
+        "boom animation",
+        "sail animation",
+        "rudder animation",
+        "heel",
+        "wake",
+        "control indicators"
+      ]
+    },
+
+    "stage_6": {
+      "goal": "Multiplayer and QA",
+      "deliverables": [
+        "server-authoritative validation",
+        "multiplayer synchronization",
+        "persistence",
+        "performance tests",
+        "game tests where practical",
+        "manual sailing test matrix"
+      ]
+    }
+  },
+
+  "acceptance_tests": [
+    "Standing still beside water lets the player observe wind direction using TAB.",
+    "Wind arrows agree with the direction in which clouds move.",
+    "Wind strength visibly changes over time.",
+    "A gust temporarily changes wind strength and may shift direction by several degrees.",
+    "The sailboat cannot accelerate efficiently while pointing directly into the wind.",
+    "The boat can sail on a beam reach.",
+    "The boat can sail downwind.",
+    "The boat can tack from one side of the wind to the other.",
+    "Pulling the mainsheet changes boom position and boat performance.",
+    "Easing the mainsheet changes boom position and boat performance.",
+    "A and D move the rudder rather than directly rotating the boat.",
+    "The rudder has little effect when stationary.",
+    "The rudder becomes effective when the boat is moving.",
+    "Directional gusts visibly and physically affect the boat.",
+    "Server and client agree on boat position, wind state, rudder position and mainsheet position.",
+    "Two players observing the same boat see approximately the same sail and rudder state.",
+    "No major performance degradation occurs when wind visualization is disabled."
+  ],
+
+  "definition_of_done": {
+    "requirements": [
+      "Project builds successfully.",
+      "Minecraft 26.3 Fabric client launches.",
+      "A player can obtain or spawn the sailboat.",
+      "The boat floats and can be mounted.",
+      "Wind drives the boat.",
+      "The rudder works.",
+      "The mainsheet works.",
+      "Wind visualization works.",
+      "Gusts work.",
+      "Sailing upwind incorrectly is prevented.",
+      "Tacking is possible.",
+      "Multiplayer state synchronization works.",
+      "Important constants are configurable or centralized.",
+      "README documents controls, sailing basics and architecture."
+    ]
+  },
+
+  "final_master_task": "After all agents finish, review every implementation, resolve conflicts, remove duplicated systems, run the complete build and test suite, launch a development client, verify the acceptance tests, fix regressions and leave the repository in a playable state rather than merely reporting unfinished work."
+}

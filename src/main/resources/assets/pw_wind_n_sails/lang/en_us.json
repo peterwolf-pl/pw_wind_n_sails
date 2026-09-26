@@ -1,0 +1,10 @@
+{
+  "itemGroup.pw_wind_n_sails.group": "Peterwolf's Wind & Sails",
+  "entity.pw_wind_n_sails.sailboat": "Sailing Boat",
+  "item.pw_wind_n_sails.sailboat": "Sailing Boat",
+  "item.pw_wind_n_sails.sailboat.desc": "Single-mast sailing boat steered with mouse, sheet trimmed with W/S, and weight balanced with A/D.",
+  "key.categories.pw_wind_n_sails": "Peterwolf's Wind & Sails",
+  "key.pw_wind_n_sails.toggle_wind": "Toggle Wind Hints (TAB)",
+  "message.pw_wind_n_sails.wind_hints_on": "Wind hints: ON (Look at water for wind streaks)",
+  "message.pw_wind_n_sails.wind_hints_off": "Wind hints: OFF"
+}
