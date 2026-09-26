@@ -117,10 +117,6 @@ public class FlagpoleBlock extends Block implements EntityBlock {
 	@Nullable
 	@Override
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-		// Top finial segment (part 6) hosts the FlagpoleBlockEntity to render the wind flag
-		if (state.getValue(PART) == TOTAL_PARTS - 1) {
-			return new FlagpoleBlockEntity(pos, state);
-		}
-		return null;
+		return new FlagpoleBlockEntity(pos, state);
 	}
 }

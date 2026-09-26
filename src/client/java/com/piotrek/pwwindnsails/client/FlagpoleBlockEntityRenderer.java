@@ -3,6 +3,7 @@ package com.piotrek.pwwindnsails.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.piotrek.pwwindnsails.WindAndSailsMod;
+import com.piotrek.pwwindnsails.block.FlagpoleBlock;
 import com.piotrek.pwwindnsails.block.entity.FlagpoleBlockEntity;
 import com.piotrek.pwwindnsails.wind.WindManager;
 import com.piotrek.pwwindnsails.wind.WindVector;
@@ -42,8 +43,9 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		@Nullable ModelFeatureRenderer.CrumblingOverlay breakProgress
 	) {
 		BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTicks, cameraPosition, breakProgress);
+		state.isTopPart = blockEntity.getBlockState().getValue(FlagpoleBlock.PART) == FlagpoleBlock.TOTAL_PARTS - 1;
 		Level level = blockEntity.getLevel();
-		if (level != null) {
+		if (level != null && state.isTopPart) {
 			WindVector wind = WindManager.getInstance().getWind(level, Vec3.atCenterOf(blockEntity.getBlockPos()));
 			state.windDirectionDeg = wind.directionDeg();
 			state.windStrength = wind.strength();
@@ -68,35 +70,41 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		SubmitNodeCollector collector,
 		CameraRenderState camera
 	) {
+		// Only render the flag at the top masthead finial (part 6)
+		if (!state.isTopPart) {
+			return;
+		}
+
 		stack.pushPose();
-		// Translate to the masthead near the finial (top of 7-block pole)
+		// Center on the masthead of the top block (part 6) near finial
 		stack.translate(0.5D, 0.88D, 0.5D);
 
-		// Align yaw with world wind direction (streams leeward with wind)
+		// Align yaw with world wind direction (the flag streams downwind):
 		stack.rotateDegrees(Axis.YP, 270.0F - state.windDirectionDeg);
 
 		// Droop / Hang down according to wind strength:
-		// Calm wind (S=0) -> hangs ~78° down like a limp rag on a stick.
+		// Calm wind (S=0) -> hangs ~76° down like a limp rag against the pole.
 		// Strong wind (S>=0.65) -> straightens horizontally (~1°).
 		float windFactor = Mth.clamp(state.windStrength / 0.65F, 0.0F, 1.0F);
-		float droopPitch = Mth.lerp(windFactor, 78.0F, 1.0F);
+		float droopPitch = Mth.lerp(windFactor, 76.0F, 1.0F);
 		stack.rotateDegrees(Axis.ZP, -droopPitch);
 
 		// Scale: 1 unit in ModelPart = 1/16 block
 		stack.scale(1.0F / 16.0F, 1.0F / 16.0F, 1.0F / 16.0F);
 
-		this.model.setupAnim(state.windStrength, state.gameTime);
+		this.model.setupAnim(state);
 
-		// Ensure bright outdoor daylight at the masthead
+		// Ensure bright outdoor daylight at the masthead:
 		int light = Math.max(state.lightCoords, 15728880);
 
-		collector.submitModelPart(
-			this.model.getRoot(),
+		collector.submitModel(
+			this.model,
+			state,
 			stack,
 			RenderTypes.entityCutout(TEXTURE),
 			light,
 			OverlayTexture.NO_OVERLAY,
-			null
+			0
 		);
 
 		stack.popPose();
