@@ -1,0 +1,31 @@
+{
+  "textures": {
+    "particle": "pw_wind_n_sails:block/flagpole",
+    "wood": "pw_wind_n_sails:block/flagpole"
+  },
+  "elements": [
+    {
+      "from": [4, 0, 4],
+      "to": [12, 3, 12],
+      "faces": {
+        "down":  { "texture": "#wood", "cullface": "down" },
+        "up":    { "texture": "#wood" },
+        "north": { "texture": "#wood" },
+        "south": { "texture": "#wood" },
+        "west":  { "texture": "#wood" },
+        "east":  { "texture": "#wood" }
+      }
+    },
+    {
+      "from": [6.5, 3, 6.5],
+      "to": [9.5, 16, 9.5],
+      "faces": {
+        "up":    { "texture": "#wood" },
+        "north": { "texture": "#wood" },
+        "south": { "texture": "#wood" },
+        "west":  { "texture": "#wood" },
+        "east":  { "texture": "#wood" }
+      }
+    }
+  ]
+}

@@ -28,6 +28,19 @@ public final class SailingPhysics {
 		boolean inIrons
 	) {}
 
+	public static PhysicsResult step(
+		Vec3 currentVelocity,
+		float currentYaw,
+		float yawVelocity,
+		float rudderAngleDeg,
+		float mainsheet,
+		WindVector trueWind,
+		float currentHeelDeg,
+		boolean inWater
+	) {
+		return step(currentVelocity, currentYaw, yawVelocity, rudderAngleDeg, mainsheet, trueWind, currentHeelDeg, false, inWater);
+	}
+
 	/**
 	 * Computes one physics tick for a sailboat.
 	 */
@@ -39,6 +52,7 @@ public final class SailingPhysics {
 		float mainsheet,
 		WindVector trueWind,
 		float currentHeelDeg,
+		boolean sailFurled,
 		boolean inWater
 	) {
 		if (!inWater) {
@@ -115,7 +129,10 @@ public final class SailingPhysics {
 		double forwardThrust = 0.0;
 		double lateralAeroForce = 0.0;
 
-		if (appWindSpeed > 1e-3F) {
+		if (sailFurled) {
+			// Sail is furled: zero aerodynamic thrust and zero heeling force, boom centered
+			boomAngleDeg = 0.0F;
+		} else if (appWindSpeed > 1e-3F) {
 			// Dynamic aerodynamic pressure
 			double dynamicPressure = 0.5 * 1.225 * appWindSpeed * appWindSpeed * WindAndSailsConfig.SAIL_AREA * WindAndSailsConfig.SAIL_FORCE_SCALE;
 

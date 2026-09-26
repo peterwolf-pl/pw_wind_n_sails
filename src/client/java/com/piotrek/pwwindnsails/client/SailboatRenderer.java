@@ -36,6 +36,7 @@ public final class SailboatRenderer extends EntityRenderer<SailboatEntity, Sailb
 		state.heel = entity.getVisualHeelAngle(partialTick);
 		state.boomAngle = entity.getVisualBoomAngle(partialTick);
 		state.rudderAngle = entity.getVisualRudderAngle(partialTick);
+		state.sailFurled = entity.isSailFurled();
 		state.speed = (float) entity.getDeltaMovement().horizontalDistance();
 		state.hurtTime = entity.getHurtTime();
 		state.damage = entity.getDamage();

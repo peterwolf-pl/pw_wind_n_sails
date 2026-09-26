@@ -115,6 +115,25 @@ public class SailingAcceptanceTests {
 	}
 
 	@Test
+	public void testFurledSailGeneratesZeroDrive() {
+		// Reach: wind towards East (from West = 90 deg). Boat heading South.
+		WindVector wind = new WindVector(270.0F, 0.70F);
+		Vec3 headway = new Vec3(0, 0, 0.15);
+
+		// Sail furled (zwinięty):
+		SailingPhysics.PhysicsResult furled = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.75F, wind, 0.0F, true, true
+		);
+
+		assertEquals(0.0F, furled.boomAngleDeg(), 1e-4F, "Furled sail boom must remain centered");
+		assertEquals(0.0F, furled.heelAngleDeg(), 1e-4F, "Furled sail must not generate heeling force");
+		assertTrue(
+			furled.newVelocity().z < headway.z,
+			"Furled sail boat must decelerate with water drag without sail drive"
+		);
+	}
+
+	@Test
 	public void testGustPhysicallyAffectsBoat() {
 		// Base wind
 		WindVector baseWind = new WindVector(270.0F, 0.50F);

@@ -8,6 +8,7 @@ public final class SailboatRenderState extends EntityRenderState {
 	public float boomAngle;
 	public float rudderAngle;
 	public float speed;
+	public boolean sailFurled;
 	public int hurtTime;
 	public float damage;
 }

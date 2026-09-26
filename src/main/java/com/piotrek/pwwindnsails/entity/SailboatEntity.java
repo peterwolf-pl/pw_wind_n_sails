@@ -44,6 +44,7 @@ public class SailboatEntity extends Entity {
 	private static final EntityDataAccessor<Float> BOOM_ANGLE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> HEEL_ANGLE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> HIKE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
+	private static final EntityDataAccessor<Boolean> SAIL_FURLED = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Integer> HURT_TIME = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Float> DAMAGE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 
@@ -78,6 +79,7 @@ public class SailboatEntity extends Entity {
 		builder.define(BOOM_ANGLE, 0.0F);
 		builder.define(HEEL_ANGLE, 0.0F);
 		builder.define(HIKE, 0.0F);
+		builder.define(SAIL_FURLED, false);
 		builder.define(HURT_TIME, 0);
 		builder.define(DAMAGE, 0.0F);
 	}
@@ -89,6 +91,7 @@ public class SailboatEntity extends Entity {
 		this.setBoomAngle(input.getFloatOr("BoomAngle", 0.0F));
 		this.setHeelAngle(input.getFloatOr("HeelAngle", 0.0F));
 		this.setHike(input.getFloatOr("Hike", 0.0F));
+		this.setSailFurled(input.getBooleanOr("SailFurled", false));
 		this.setDamage(input.getFloatOr("Damage", 0.0F));
 	}
 
@@ -99,6 +102,7 @@ public class SailboatEntity extends Entity {
 		output.putFloat("BoomAngle", this.getBoomAngle());
 		output.putFloat("HeelAngle", this.getHeelAngle());
 		output.putFloat("Hike", this.getHike());
+		output.putBoolean("SailFurled", this.isSailFurled());
 		output.putFloat("Damage", this.getDamage());
 	}
 
@@ -117,6 +121,14 @@ public class SailboatEntity extends Entity {
 
 	@Override
 	public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+		if (this.hasPassenger(player)) {
+			// Player is seated in the boat: right click (on mast or cockpit) toggles furling/unfurling!
+			if (!this.level().isClientSide() && hand == InteractionHand.MAIN_HAND) {
+				this.toggleSailFurled();
+			}
+			return InteractionResult.SUCCESS;
+		}
+
 		if (player.isSecondaryUseActive()) {
 			return InteractionResult.PASS;
 		}
@@ -250,6 +262,7 @@ public class SailboatEntity extends Entity {
 			currentSheet,
 			trueWind,
 			this.getHeelAngle(),
+			this.isSailFurled(),
 			inWater
 		);
 
@@ -316,6 +329,16 @@ public class SailboatEntity extends Entity {
 
 	public float getDamage() { return this.entityData.get(DAMAGE); }
 	public void setDamage(float damage) { this.entityData.set(DAMAGE, damage); }
+
+	public boolean isSailFurled() { return this.entityData.get(SAIL_FURLED); }
+	public void setSailFurled(boolean furled) { this.entityData.set(SAIL_FURLED, furled); }
+	public void toggleSailFurled() {
+		boolean newState = !this.isSailFurled();
+		this.setSailFurled(newState);
+		this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+			net.minecraft.sounds.SoundEvents.WOOL_PLACE, net.minecraft.sounds.SoundSource.PLAYERS,
+			1.0F, newState ? 0.85F : 1.15F);
+	}
 
 	public float getHike() { return this.entityData.get(HIKE); }
 	public void setHike(float hike) { this.entityData.set(HIKE, hike); }

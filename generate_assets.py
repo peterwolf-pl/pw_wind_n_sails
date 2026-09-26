@@ -163,4 +163,56 @@ icon_draw.ellipse([16, 88, 28, 95], fill=(200, 235, 255, 180))
 
 icon_img.save("src/main/resources/assets/pw_wind_n_sails/icon.png")
 
+# 4. Flagpole Wood Texture (16x16)
+pole_img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+for y in range(16):
+    for x in range(16):
+        c = WOOD_LIGHT if (x + y // 2) % 4 != 0 else WOOD_BASE
+        if x in (0, 15) or y in (0, 15):
+            c = WOOD_DARK
+        pole_img.putpixel((x, y), c)
+os.makedirs("src/main/resources/assets/pw_wind_n_sails/textures/block", exist_ok=True)
+pole_img.save("src/main/resources/assets/pw_wind_n_sails/textures/block/flagpole.png")
+
+# 5. Flag Entity Texture (128x64)
+# Authentic maritime ensign: white & crimson field with navy trim & golden emblem
+flag_img = Image.new("RGBA", (128, 64), (0, 0, 0, 0))
+flag_draw = ImageDraw.Draw(flag_img)
+
+# Top stripe crimson, bottom stripe white, navy hoist trim
+CRIMSON = (196, 32, 48, 255)
+WHITE = (248, 245, 238, 255)
+NAVY = (24, 48, 92, 255)
+GOLD = (235, 195, 60, 255)
+
+flag_draw.rectangle([0, 0, 127, 31], fill=CRIMSON)
+flag_draw.rectangle([0, 32, 127, 63], fill=WHITE)
+# Hoist strip (sleeve attaching to mast)
+flag_draw.rectangle([0, 0, 8, 63], fill=NAVY)
+flag_draw.line([(8, 0), (8, 63)], fill=(40, 70, 125, 255), width=1)
+
+# Central maritime gold anchor emblem
+flag_draw.ellipse([34, 18, 54, 38], outline=GOLD, width=2)
+flag_draw.line([(44, 20), (44, 48)], fill=GOLD, width=2)
+flag_draw.line([(38, 28), (50, 28)], fill=GOLD, width=2)
+flag_draw.arc([36, 36, 52, 48], start=0, end=180, fill=GOLD, width=2)
+
+flag_img.save("src/main/resources/assets/pw_wind_n_sails/textures/entity/flag.png")
+
+# 6. Flagpole Item Icon (32x32)
+fp_item = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+fp_draw = ImageDraw.Draw(fp_item)
+
+# Slender mast running from bottom left to top
+fp_draw.line([(8, 30), (8, 2)], fill=WOOD_DARK, width=2)
+fp_draw.line([(7, 2), (9, 2)], fill=GOLD, width=2) # Gold truck on top
+fp_draw.rectangle([4, 28, 12, 31], fill=WOOD_BASE, outline=WOOD_TRIM) # Pedestal
+
+# Flag flying out to the right
+fp_draw.rectangle([9, 4, 27, 10], fill=CRIMSON)
+fp_draw.rectangle([9, 11, 27, 16], fill=WHITE)
+fp_draw.line([(9, 4), (9, 16)], fill=NAVY, width=1)
+
+fp_item.save("src/main/resources/assets/pw_wind_n_sails/textures/item/flagpole.png")
+
 print("Generated textures successfully!")

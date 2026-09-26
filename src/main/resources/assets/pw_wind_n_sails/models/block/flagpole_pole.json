@@ -1,0 +1,20 @@
+{
+  "textures": {
+    "particle": "pw_wind_n_sails:block/flagpole",
+    "wood": "pw_wind_n_sails:block/flagpole"
+  },
+  "elements": [
+    {
+      "from": [6.5, 0, 6.5],
+      "to": [9.5, 16, 9.5],
+      "faces": {
+        "down":  { "texture": "#wood" },
+        "up":    { "texture": "#wood" },
+        "north": { "texture": "#wood" },
+        "south": { "texture": "#wood" },
+        "west":  { "texture": "#wood" },
+        "east":  { "texture": "#wood" }
+      }
+    }
+  ]
+}

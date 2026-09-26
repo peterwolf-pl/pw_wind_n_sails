@@ -12,18 +12,22 @@ import net.minecraft.util.Mth;
 /**
  * 3.0m x 1.5m single-mast sailing boat model.
  * Features articulated boom and mainsail responding to apparent wind and mainsheet,
- * as well as a steerable stern rudder with cockpit tiller.
+ * steerable stern rudder, and toggleable furled/unfurled sail states.
  */
 public final class SailboatModel extends EntityModel<SailboatRenderState> {
 	private final ModelPart hull;
 	private final ModelPart boom;
 	private final ModelPart rudder;
+	private final ModelPart sailOpen;
+	private final ModelPart sailFurled;
 
 	public SailboatModel(ModelPart root) {
 		super(root);
 		this.hull = root.getChild("hull");
 		this.boom = root.getChild("boom");
 		this.rudder = root.getChild("rudder");
+		this.sailOpen = this.boom.getChild("sail_open");
+		this.sailFurled = this.boom.getChild("sail_furled");
 	}
 
 	public static LayerDefinition createBodyLayer() {
@@ -31,7 +35,7 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 		PartDefinition root = mesh.getRoot();
 
 		// --- 1. Hull, Benches, and Mast ---
-		PartDefinition hull = root.addOrReplaceChild("hull", CubeListBuilder.create()
+		root.addOrReplaceChild("hull", CubeListBuilder.create()
 			// Bottom floor (20 wide, 2 high, 44 long)
 			.texOffs(0, 0).addBox(-10.0F, -2.0F, -22.0F, 20.0F, 2.0F, 44.0F)
 			// Port (left) side wall
@@ -55,26 +59,35 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 			PartPose.offset(0.0F, 24.0F, 0.0F)
 		);
 
-		// --- 2. Boom and Mainsail (hinged at the mast: X=0, Y=10, Z=-11) ---
+		// --- 2. Boom and Mainsail (hinged at the mast: X=0, Y=14, Z=-11) ---
 		PartDefinition boom = root.addOrReplaceChild("boom", CubeListBuilder.create()
 			// Horizontal Boom spar extending aft 33 units
 			.texOffs(0, 140).addBox(-1.0F, -1.0F, 0.0F, 2.0F, 2.0F, 33.0F)
 			// Boom gooseneck fitting at mast
-			.texOffs(72, 140).addBox(-1.5F, -1.5F, -1.5F, 3.0F, 3.0F, 2.0F)
-			// Mainsail cloth panels (triangular rig, ~5m² surface area)
-			// Lower foot panel
-			.texOffs(0, 178).addBox(-0.5F, -18.0F, 0.5F, 1.0F, 18.0F, 31.0F)
-			// Mid panel
-			.texOffs(66, 178).addBox(-0.5F, -34.0F, 0.5F, 1.0F, 16.0F, 22.0F)
-			// Upper panel
-			.texOffs(130, 178).addBox(-0.5F, -48.0F, 0.5F, 1.0F, 14.0F, 13.0F)
-			// Top head panel
-			.texOffs(184, 178).addBox(-0.5F, -60.0F, 0.5F, 1.0F, 12.0F, 5.0F),
+			.texOffs(72, 140).addBox(-1.5F, -1.5F, -1.5F, 3.0F, 3.0F, 2.0F),
 			PartPose.offset(0.0F, 14.0F, -11.0F)
 		);
 
-		// --- 3. Stern Rudder and Tiller (hinged at stern: X=0, Y=14, Z=23) ---
-		PartDefinition rudder = root.addOrReplaceChild("rudder", CubeListBuilder.create()
+		// Open unfurled mainsail (triangular cloth rig)
+		boom.addOrReplaceChild("sail_open", CubeListBuilder.create()
+			.texOffs(0, 178).addBox(-0.5F, -18.0F, 0.5F, 1.0F, 18.0F, 31.0F)
+			.texOffs(66, 178).addBox(-0.5F, -34.0F, 0.5F, 1.0F, 16.0F, 22.0F)
+			.texOffs(130, 178).addBox(-0.5F, -48.0F, 0.5F, 1.0F, 14.0F, 13.0F)
+			.texOffs(184, 178).addBox(-0.5F, -60.0F, 0.5F, 1.0F, 12.0F, 5.0F),
+			PartPose.ZERO
+		);
+
+		// Furled mainsail: neatly strapped canvas bundle along the boom
+		boom.addOrReplaceChild("sail_furled", CubeListBuilder.create()
+			.texOffs(0, 178).addBox(-1.5F, -3.0F, 1.0F, 3.0F, 2.0F, 31.0F)
+			.texOffs(72, 140).addBox(-2.0F, -3.5F, 6.0F, 4.0F, 3.0F, 1.0F)
+			.texOffs(72, 140).addBox(-2.0F, -3.5F, 16.0F, 4.0F, 3.0F, 1.0F)
+			.texOffs(72, 140).addBox(-2.0F, -3.5F, 26.0F, 4.0F, 3.0F, 1.0F),
+			PartPose.ZERO
+		);
+
+		// --- 3. Stern Rudder and Tiller (hinged at stern: X=0, Y=15, Z=23) ---
+		root.addOrReplaceChild("rudder", CubeListBuilder.create()
 			// Rudder post attached to stern
 			.texOffs(90, 104).addBox(-1.0F, -4.0F, 0.0F, 2.0F, 15.0F, 2.0F)
 			// Underwater rudder blade (dipping down into water)
@@ -96,5 +109,9 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 		this.rudder.yRot = -state.rudderAngle * Mth.DEG_TO_RAD;
 		// Boom and mainsail swing to leeward (strona zawietrzna)
 		this.boom.yRot = -state.boomAngle * Mth.DEG_TO_RAD;
+
+		// Toggle open sail vs furled canvas bundle
+		this.sailOpen.visible = !state.sailFurled;
+		this.sailFurled.visible = state.sailFurled;
 	}
 }

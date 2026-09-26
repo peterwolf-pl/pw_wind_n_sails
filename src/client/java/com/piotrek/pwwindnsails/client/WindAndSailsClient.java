@@ -11,6 +11,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -28,10 +29,22 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		"main"
 	);
 
+	public static final ModelLayerLocation FLAGPOLE_FLAG_LAYER = new ModelLayerLocation(
+		WindAndSailsMod.id("flagpole_flag"),
+		"main"
+	);
+
 	public static final KeyMapping KEY_TOGGLE_WIND = new KeyMapping(
 		"key.pw_wind_n_sails.toggle_wind",
 		InputConstants.Type.KEYBOARD,
 		InputConstants.KEY_TAB,
+		KeyMapping.Category.GAMEPLAY
+	);
+
+	public static final KeyMapping KEY_TOGGLE_SAIL = new KeyMapping(
+		"key.pw_wind_n_sails.toggle_sail",
+		InputConstants.Type.KEYBOARD,
+		InputConstants.KEY_X,
 		KeyMapping.Category.GAMEPLAY
 	);
 
@@ -43,8 +56,13 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		EntityRendererRegistry.register(WindAndSailsMod.SAILBOAT_ENTITY, SailboatRenderer::new);
 		ModelLayerRegistry.registerModelLayer(SAILBOAT_LAYER, SailboatModel::createBodyLayer);
 
+		// Block Entity Renderer & Model Layer
+		BlockEntityRendererRegistry.register(WindAndSailsMod.FLAGPOLE_BLOCK_ENTITY, FlagpoleBlockEntityRenderer::new);
+		ModelLayerRegistry.registerModelLayer(FLAGPOLE_FLAG_LAYER, FlagModel::createLayer);
+
 		// Keybind
 		KeyMappingHelper.registerKeyMapping(KEY_TOGGLE_WIND);
+		KeyMappingHelper.registerKeyMapping(KEY_TOGGLE_SAIL);
 
 		// HUD & Visualizer
 		HudElementRegistry.addLast(WindAndSailsMod.id("sailboat_hud"), SailboatHudOverlay.INSTANCE);
@@ -93,7 +111,13 @@ public final class WindAndSailsClient implements ClientModInitializer {
 				// A / D Rudder steering: A = steer port (-1.0), D = steer starboard (+1.0), neither = auto-center (0.0)
 				float rudderInput = left ? -1.0F : right ? 1.0F : 0.0F;
 
-				ClientPlayNetworking.send(new SailboatInputPayload(boat.getId(), rudderInput, sheetInput));
+				// X toggles furling/unfurling the sail
+				boolean toggleSail = false;
+				while (KEY_TOGGLE_SAIL.consumeClick()) {
+					toggleSail = true;
+				}
+
+				ClientPlayNetworking.send(new SailboatInputPayload(boat.getId(), rudderInput, sheetInput, toggleSail));
 
 				// Spawn subtle water wake particles when boat is moving
 				Vec3 vel = boat.getDeltaMovement();

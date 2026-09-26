@@ -9,7 +9,8 @@ import net.minecraft.resources.Identifier;
 public record SailboatInputPayload(
 	int boatEntityId,
 	float rudderInput,
-	float sheetInput
+	float sheetInput,
+	boolean toggleSail
 ) implements CustomPacketPayload {
 	public static final Type<SailboatInputPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(WindAndSailsMod.MOD_ID, "boat_input"));
 
@@ -19,7 +20,8 @@ public record SailboatInputPayload(
 			return new SailboatInputPayload(
 				buf.readVarInt(),
 				buf.readFloat(),
-				buf.readFloat()
+				buf.readFloat(),
+				buf.readBoolean()
 			);
 		}
 
@@ -28,6 +30,7 @@ public record SailboatInputPayload(
 			buf.writeVarInt(p.boatEntityId);
 			buf.writeFloat(p.rudderInput);
 			buf.writeFloat(p.sheetInput);
+			buf.writeBoolean(p.toggleSail);
 		}
 	};
 

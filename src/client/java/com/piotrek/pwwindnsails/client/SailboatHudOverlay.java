@@ -84,7 +84,10 @@ public final class SailboatHudOverlay implements HudElement {
 
 		String trimHint;
 		int colorTrim;
-		if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
+		if (boat.isSailFurled()) {
+			trimHint = "Żagiel ZWINIĘTY [X / PPM maszt - rozwiń]";
+			colorTrim = 0xFF55FFFF; // Cyan
+		} else if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
 			trimHint = "IN IRONS (Kąt martwy)";
 			colorTrim = 0xFFFF5555; // Red
 		} else if (Math.abs(boat.getHeelAngle()) > 24.0F) {
@@ -106,7 +109,8 @@ public final class SailboatHudOverlay implements HudElement {
 
 		float rudder = boat.getRudderAngle();
 		String rudderStr = Math.abs(rudder) < 1.0F ? "Środek" : rudder < 0 ? String.format("Bakburta %.0f°", -rudder) : String.format("Sterburta %.0f°", rudder);
-		String sheetText = String.format("Szot: %d%% %s (W/S)  |  Ster: %s (A/D)", sheetPct, barStr, rudderStr);
+		String sailStatus = boat.isSailFurled() ? "ZWINIĘTY [X]" : String.format("%d%% %s", sheetPct, barStr);
+		String sheetText = String.format("Szot: %s (W/S)  |  Ster: %s (A/D)", sailStatus, rudderStr);
 		String speedText = String.format("%.1f kn  |  %s  |  %s", speedKnots, pointOfSail, trimHint);
 
 		int hudX = width / 2;

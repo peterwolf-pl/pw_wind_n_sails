@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "part=0": { "model": "pw_wind_n_sails:block/flagpole_base" },
+    "part=1": { "model": "pw_wind_n_sails:block/flagpole_pole" },
+    "part=2": { "model": "pw_wind_n_sails:block/flagpole_pole" },
+    "part=3": { "model": "pw_wind_n_sails:block/flagpole_top" }
+  }
+}
