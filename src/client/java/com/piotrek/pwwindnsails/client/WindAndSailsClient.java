@@ -116,6 +116,10 @@ public final class WindAndSailsClient implements ClientModInitializer {
 
 				// A / D Rudder steering: A = steer port (-1.0), D = steer starboard (+1.0), neither = auto-center (0.0)
 				float rudderInput = left ? -1.0F : right ? 1.0F : 0.0F;
+				boat.setRudderHeld(rudderInput != 0.0F);
+				if (rudderInput == 0.0F) {
+					boat.snapVisualRudder();
+				}
 
 				// X toggles furling/unfurling the sail
 				boolean toggleSail = false;

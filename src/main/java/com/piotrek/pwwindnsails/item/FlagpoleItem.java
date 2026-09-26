@@ -1,6 +1,7 @@
 package com.piotrek.pwwindnsails.item;
 
 import com.piotrek.pwwindnsails.block.FlagpoleBlock;
+import com.piotrek.pwwindnsails.block.entity.FlagpoleBlockEntity;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -9,6 +10,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -46,10 +48,23 @@ public class FlagpoleItem extends BlockItem {
 			}
 		}
 
+		// Same color on client prediction and the server for this placement.
+		long salt = context.getPlayer() != null ? context.getPlayer().getUUID().getLeastSignificantBits() : 0L;
+		int mixed = (int) (level.getGameTime() ^ salt ^ basePos.asLong());
+		DyeColor color = DyeColor.byId(Math.floorMod(mixed, DyeColor.values().length));
+
 		// Place all 7 parts of the tall mast
 		BlockState baseState = this.getBlock().defaultBlockState();
 		for (int i = 0; i < FlagpoleBlock.TOTAL_PARTS; i++) {
 			level.setBlock(basePos.above(i), baseState.setValue(FlagpoleBlock.PART, i), Block.UPDATE_ALL);
+		}
+		BlockPos top = basePos.above(FlagpoleBlock.TOTAL_PARTS - 1);
+		if (level.getBlockEntity(top) instanceof FlagpoleBlockEntity flag) {
+			flag.setColor(color);
+			if (!level.isClientSide()) {
+				level.blockEntityChanged(top);
+				level.sendBlockUpdated(top, level.getBlockState(top), level.getBlockState(top), Block.UPDATE_CLIENTS);
+			}
 		}
 
 		level.playSound(

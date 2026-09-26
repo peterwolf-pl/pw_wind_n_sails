@@ -176,7 +176,12 @@ public class SailboatEntity extends Entity {
 
 			this.visualBoomAngle = Mth.lerp(0.2F, this.visualBoomAngle, this.getBoomAngle());
 			this.visualHeelAngle = Mth.lerp(0.2F, this.visualHeelAngle, this.getHeelAngle());
-			this.visualRudderAngle = Mth.lerp(0.25F, this.visualRudderAngle, this.getRudderAngle());
+			if (!this.rudderHeld) {
+				this.visualRudderAngleO = 0.0F;
+				this.visualRudderAngle = 0.0F;
+			} else {
+				this.visualRudderAngle = Mth.lerp(0.25F, this.visualRudderAngle, this.getRudderAngle());
+			}
 			return;
 		}
 
@@ -239,9 +244,8 @@ public class SailboatEntity extends Entity {
 		if (Math.abs(this.clientRudderInput) > 0.01F) {
 			currentRudder += this.clientRudderInput * WindAndSailsConfig.rudderRatePerTick * WindAndSailsConfig.rudderSensitivity;
 		} else {
-			// Auto-centering: smoothly return to 0 when A/D released
-			float sign = Math.signum(currentRudder);
-			currentRudder -= sign * Math.min(Math.abs(currentRudder), WindAndSailsConfig.rudderAutoCenterRate);
+			// Releasing A/D centers the rudder immediately.
+			currentRudder = 0.0F;
 		}
 		currentRudder = Mth.clamp(currentRudder, -WindAndSailsConfig.maxRudderAngleDeg, WindAndSailsConfig.maxRudderAngleDeg);
 
@@ -355,6 +359,18 @@ public class SailboatEntity extends Entity {
 	}
 
 	// Synched getters and setters
+	private boolean rudderHeld;
+
+	/** Client-only. While false, the tiller is drawn centered instead of easing back. */
+	public void setRudderHeld(boolean held) {
+		this.rudderHeld = held;
+	}
+
+	public void snapVisualRudder() {
+		this.visualRudderAngleO = 0.0F;
+		this.visualRudderAngle = 0.0F;
+	}
+
 	public float getRudderAngle() { return this.entityData.get(RUDDER_ANGLE); }
 	public void setRudderAngle(float angle) { this.entityData.set(RUDDER_ANGLE, angle); }
 

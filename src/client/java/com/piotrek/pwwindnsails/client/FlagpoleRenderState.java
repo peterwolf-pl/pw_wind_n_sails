@@ -7,4 +7,5 @@ public final class FlagpoleRenderState extends BlockEntityRenderState {
 	public float windStrength;
 	public float gameTime;
 	public boolean isTopPart;
+	public int tint = -1;
 }

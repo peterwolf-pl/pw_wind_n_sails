@@ -50,6 +50,7 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 			state.windDirectionDeg = wind.directionDeg();
 			state.windStrength = wind.strength();
 			state.gameTime = level.getGameTime() + partialTicks;
+			state.tint = blockEntity.getColor().getTextureDiffuseColor();
 		}
 	}
 
@@ -80,16 +81,15 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 
 		this.model.setupAnim(state);
 
-		// Ensure bright outdoor daylight at the masthead:
-		int light = Math.max(state.lightCoords, 15728880);
-
 		collector.submitModel(
 			this.model,
 			state,
 			stack,
 			RenderTypes.entityCutout(TEXTURE),
-			light,
+			state.lightCoords,
 			OverlayTexture.NO_OVERLAY,
+			state.tint,
+			null,
 			0
 		);
 
