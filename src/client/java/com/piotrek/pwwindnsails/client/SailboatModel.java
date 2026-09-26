@@ -36,16 +36,17 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 
 		// --- 1. Hull, Benches, and Mast ---
 		root.addOrReplaceChild("hull", CubeListBuilder.create()
-			// Bottom floor (20 wide, 2 high, 44 long)
-			.texOffs(0, 0).addBox(-10.0F, -2.0F, -22.0F, 20.0F, 2.0F, 44.0F)
+			// Solid bilge. Bottom skin sits on the waterline; the sole is 0.375 blocks above it
+			// so the cockpit stays dry. Overlaps the walls by 1px to hide water through cracks.
+			.texOffs(0, 0).addBox(-11.0F, -6.0F, -23.0F, 22.0F, 6.0F, 46.0F)
 			// Port (left) side wall
-			.texOffs(0, 48).addBox(-12.0F, -10.0F, -23.0F, 2.0F, 8.0F, 46.0F)
+			.texOffs(0, 48).addBox(-12.0F, -10.0F, -23.0F, 2.0F, 10.0F, 46.0F)
 			// Starboard (right) side wall
-			.texOffs(52, 48).addBox(10.0F, -10.0F, -23.0F, 2.0F, 8.0F, 46.0F)
+			.texOffs(52, 48).addBox(10.0F, -10.0F, -23.0F, 2.0F, 10.0F, 46.0F)
 			// Bow stem (front wall)
-			.texOffs(0, 104).addBox(-10.0F, -11.0F, -24.0F, 20.0F, 9.0F, 2.0F)
+			.texOffs(0, 104).addBox(-10.0F, -11.0F, -24.0F, 20.0F, 11.0F, 2.0F)
 			// Stern transom (rear wall)
-			.texOffs(46, 104).addBox(-10.0F, -11.0F, 22.0F, 20.0F, 9.0F, 2.0F)
+			.texOffs(46, 104).addBox(-10.0F, -11.0F, 22.0F, 20.0F, 11.0F, 2.0F)
 			// Forward deck & mast step
 			.texOffs(0, 117).addBox(-10.0F, -9.0F, -14.0F, 20.0F, 2.0F, 6.0F)
 			// Mid thwart / bench
@@ -90,8 +91,8 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 		root.addOrReplaceChild("rudder", CubeListBuilder.create()
 			// Rudder post attached to stern
 			.texOffs(90, 104).addBox(-1.0F, -4.0F, 0.0F, 2.0F, 15.0F, 2.0F)
-			// Underwater rudder blade (dipping down into water)
-			.texOffs(100, 104).addBox(-0.5F, 1.0F, 2.0F, 1.0F, 10.0F, 8.0F)
+			// Rudder blade. Stops at the hull bottom so it does not dig into the shore.
+			.texOffs(100, 104).addBox(-0.5F, 1.0F, 2.0F, 1.0F, 8.0F, 8.0F)
 			// Tiller arm extending forward into cockpit for helmsman
 			.texOffs(90, 124).addBox(-1.0F, -5.0F, -10.0F, 2.0F, 2.0F, 11.0F)
 			// Wooden tiller handle

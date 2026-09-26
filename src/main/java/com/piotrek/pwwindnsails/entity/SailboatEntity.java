@@ -166,6 +166,7 @@ public class SailboatEntity extends Entity {
 	@Override
 	public void tick() {
 		super.tick();
+		this.fitBoundingBoxToHull();
 
 		if (this.level().isClientSide()) {
 			this.getInterpolation().interpolate();
@@ -217,9 +218,10 @@ public class SailboatEntity extends Entity {
 		double yVel = currentVel.y;
 		if (inWater) {
 			double submergedDepth = waterSurfaceY - bb.minY;
-			// Target water level rests hull ~0.20 blocks deep
-			double targetYVel = (submergedDepth - 0.20) * 0.12;
-			yVel = Mth.lerp(0.2, yVel, targetYVel);
+			// Hull bottom rests on the water surface. A deeper draft clips the shore,
+			// and the cockpit sole sits 0.375 blocks above this line so the interior stays dry.
+			double targetYVel = submergedDepth * 0.18;
+			yVel = Mth.lerp(0.35, yVel, targetYVel);
 		} else {
 			yVel = Math.max(-0.98, yVel - 0.04);
 		}
@@ -277,16 +279,57 @@ public class SailboatEntity extends Entity {
 		this.setHeelAngle(physics.heelAngleDeg());
 
 		this.move(MoverType.SELF, this.getDeltaMovement());
+		this.fitBoundingBoxToHull();
+		this.liftOutOfShore();
+		this.fitBoundingBoxToHull();
 		this.needsSync = true;
+	}
+
+	/**
+	 * Axis-aligned box that contains the 3.0 x 1.5 hull at the current yaw.
+	 * The registered size is only 1.5 square, which let the bow enter land by ~0.75 blocks.
+	 */
+	private void fitBoundingBoxToHull() {
+		float yawRad = this.getYRot() * Mth.DEG_TO_RAD;
+		double fwdX = -Mth.sin(yawRad);
+		double fwdZ = Mth.cos(yawRad);
+		double rightX = Mth.cos(yawRad);
+		double rightZ = Mth.sin(yawRad);
+		double halfLength = WindAndSailsConfig.BOAT_LENGTH * 0.5;
+		double halfWidth = WindAndSailsConfig.BOAT_WIDTH * 0.5;
+		double extX = Math.abs(fwdX) * halfLength + Math.abs(rightX) * halfWidth;
+		double extZ = Math.abs(fwdZ) * halfLength + Math.abs(rightZ) * halfWidth;
+		double y = this.getY();
+		this.setBoundingBox(new AABB(
+			this.getX() - extX, y, this.getZ() - extZ,
+			this.getX() + extX, y + 0.6, this.getZ() + extZ
+		));
+	}
+
+	/** If movement left the hull inside a shore block, step up by at most half a block. */
+	private void liftOutOfShore() {
+		AABB box = this.getBoundingBox();
+		if (this.level().noCollision(this, box)) {
+			return;
+		}
+		for (int i = 1; i <= 10; i++) {
+			double step = i * 0.05;
+			if (this.level().noCollision(this, box.move(0.0, step, 0.0))) {
+				this.setPos(this.getX(), this.getY() + step, this.getZ());
+				Vec3 vel = this.getDeltaMovement();
+				this.setDeltaMovement(vel.x, 0.0, vel.z);
+				return;
+			}
+		}
 	}
 
 	@Override
 	protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
-		// Passenger sits on aft bench near tiller: X=0, Y=0.35, Z=-0.70 in local coordinates
+		// Passenger sits on the aft bench, above the dry cockpit sole
 		float yawRad = this.getYRot() * Mth.DEG_TO_RAD;
 		double xOffset = -Mth.sin(yawRad) * (-0.70);
 		double zOffset = Mth.cos(yawRad) * (-0.70);
-		return new Vec3(xOffset, 0.35, zOffset);
+		return new Vec3(xOffset, 0.55, zOffset);
 	}
 
 	@Override
