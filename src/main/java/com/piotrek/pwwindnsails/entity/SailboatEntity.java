@@ -329,7 +329,7 @@ public class SailboatEntity extends Entity {
 		float yawRad = this.getYRot() * Mth.DEG_TO_RAD;
 		double xOffset = -Mth.sin(yawRad) * (-0.70);
 		double zOffset = Mth.cos(yawRad) * (-0.70);
-		return new Vec3(xOffset, 0.55, zOffset);
+		return new Vec3(xOffset, 0.42, zOffset);
 	}
 
 	@Override

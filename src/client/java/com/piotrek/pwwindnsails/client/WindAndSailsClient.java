@@ -29,6 +29,11 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		"main"
 	);
 
+	public static final ModelLayerLocation SAILBOAT_WATER_PATCH = new ModelLayerLocation(
+		WindAndSailsMod.id("sailboat"),
+		"water_patch"
+	);
+
 	public static final ModelLayerLocation FLAGPOLE_FLAG_LAYER = new ModelLayerLocation(
 		WindAndSailsMod.id("flagpole_flag"),
 		"main"
@@ -55,6 +60,7 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		// Entity & Model
 		EntityRendererRegistry.register(WindAndSailsMod.SAILBOAT_ENTITY, SailboatRenderer::new);
 		ModelLayerRegistry.registerModelLayer(SAILBOAT_LAYER, SailboatModel::createBodyLayer);
+		ModelLayerRegistry.registerModelLayer(SAILBOAT_WATER_PATCH, SailboatModel::createWaterPatch);
 
 		// Block Entity Renderer & Model Layer
 		BlockEntityRendererRegistry.register(WindAndSailsMod.FLAGPOLE_BLOCK_ENTITY, FlagpoleBlockEntityRenderer::new);
