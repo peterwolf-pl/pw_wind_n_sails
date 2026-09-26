@@ -62,12 +62,12 @@ public final class FlagModel extends Model<FlagpoleRenderState> {
 		this.seg2.yRot = Mth.sin(phase - 1.2F) * 0.18F * windFactor;
 		this.seg3.yRot = Mth.sin(phase - 2.4F) * 0.32F * windFactor;
 
-		// Very light wind: panel 2 and panel 3 drop so each top sits at half
-		// the cloth height of the panel before it.
+		// Very light wind: each next panel stays parallel and connected, but its
+		// top sits at half the cloth height of the panel before it.
 		float halfPrevious = 8.0F * limp;
 		this.seg2.y = -halfPrevious;
 		this.seg3.y = -halfPrevious;
-		this.seg2.zRot = Mth.lerp(limp, Mth.cos(phase - 0.8F) * 0.04F * windFactor, -0.85F);
-		this.seg3.zRot = Mth.lerp(limp, Mth.cos(phase - 2.0F) * 0.09F * windFactor, -0.85F);
+		this.seg2.zRot = Mth.cos(phase - 0.8F) * 0.04F * windFactor;
+		this.seg3.zRot = Mth.cos(phase - 2.0F) * 0.09F * windFactor;
 	}
 }

@@ -68,8 +68,8 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		}
 
 		stack.pushPose();
-		// Hoist at the top of the plain pole.
-		stack.translate(0.5D, 0.98D, 0.5D);
+		// One block below the masthead, so the cloth hangs on the top of the pole.
+		stack.translate(0.5D, -0.02D, 0.5D);
 
 		// Stream downwind. Yaw 0 in this space is +X, which is world yaw 270.
 		stack.rotateDegrees(Axis.YP, 270.0F - state.windDirectionDeg);
