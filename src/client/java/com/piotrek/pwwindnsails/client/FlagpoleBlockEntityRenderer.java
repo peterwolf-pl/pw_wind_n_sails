@@ -54,43 +54,29 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 	}
 
 	@Override
-	public boolean shouldRenderOffScreen() {
-		return true;
-	}
-
-	@Override
-	public int getViewDistance() {
-		return 256;
-	}
-
-	@Override
 	public void submit(
 		FlagpoleRenderState state,
 		PoseStack stack,
 		SubmitNodeCollector collector,
 		CameraRenderState camera
 	) {
-		// Only render the flag at the top masthead finial (part 6)
+		// Only the masthead (part 6) draws the cloth. Returning true from
+		// shouldRenderOffScreen() skips Sodium's normal block-entity pass.
 		if (!state.isTopPart) {
 			return;
 		}
 
 		stack.pushPose();
-		// Center on the masthead of the top block (part 6) near finial
-		stack.translate(0.5D, 0.88D, 0.5D);
+		// Hoist at the finial. ModelPart already converts pixel units to blocks.
+		stack.translate(0.5D, 0.92D, 0.5D);
 
-		// Align yaw with world wind direction (the flag streams downwind):
+		// Stream downwind. Yaw 0 in this space is +X, which is world yaw 270.
 		stack.rotateDegrees(Axis.YP, 270.0F - state.windDirectionDeg);
 
-		// Droop / Hang down according to wind strength:
-		// Calm wind (S=0) -> hangs ~76° down like a limp rag against the pole.
-		// Strong wind (S>=0.65) -> straightens horizontally (~1°).
+		// Calm: hang down the lee side. Strong wind: fly out nearly level.
 		float windFactor = Mth.clamp(state.windStrength / 0.65F, 0.0F, 1.0F);
 		float droopPitch = Mth.lerp(windFactor, 76.0F, 1.0F);
 		stack.rotateDegrees(Axis.ZP, -droopPitch);
-
-		// Scale: 1 unit in ModelPart = 1/16 block
-		stack.scale(1.0F / 16.0F, 1.0F / 16.0F, 1.0F / 16.0F);
 
 		this.model.setupAnim(state);
 
