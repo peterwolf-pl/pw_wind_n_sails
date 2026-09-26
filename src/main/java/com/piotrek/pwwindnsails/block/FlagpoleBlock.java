@@ -23,11 +23,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 4-block high mast/flagpole with an animated wind flag on top.
- * Part 0 = base on ground, Part 1 & 2 = middle pole segments, Part 3 = masthead finial with flag.
+ * 7-block tall mast/flagpole with an animated wind flag on top.
+ * Part 0 = base on ground, Parts 1..5 = middle pole segments, Part 6 = masthead finial with flag.
  */
 public class FlagpoleBlock extends Block implements EntityBlock {
-	public static final IntegerProperty PART = IntegerProperty.create("part", 0, 3);
+	public static final int TOTAL_PARTS = 7;
+	public static final IntegerProperty PART = IntegerProperty.create("part", 0, TOTAL_PARTS - 1);
 
 	private static final VoxelShape POLE_SHAPE = Block.box(6.5, 0.0, 6.5, 9.5, 16.0, 9.5);
 	private static final VoxelShape BASE_SHAPE = Shapes.or(
@@ -53,7 +54,7 @@ public class FlagpoleBlock extends Block implements EntityBlock {
 	public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
 		int part = state.getValue(PART);
 		if (part == 0) return BASE_SHAPE;
-		if (part == 3) return TOP_SHAPE;
+		if (part == TOTAL_PARTS - 1) return TOP_SHAPE;
 		return POLE_SHAPE;
 	}
 
@@ -86,7 +87,7 @@ public class FlagpoleBlock extends Block implements EntityBlock {
 				return Blocks.AIR.defaultBlockState();
 			}
 		}
-		if (direction == Direction.UP && part < 3) {
+		if (direction == Direction.UP && part < TOTAL_PARTS - 1) {
 			if (!neighborState.is(this) || neighborState.getValue(PART) != part + 1) {
 				return Blocks.AIR.defaultBlockState();
 			}
@@ -99,8 +100,8 @@ public class FlagpoleBlock extends Block implements EntityBlock {
 		if (!level.isClientSide()) {
 			int part = state.getValue(PART);
 			BlockPos basePos = pos.below(part);
-			// Clean up all 4 segments so no floating mast parts remain
-			for (int i = 0; i <= 3; i++) {
+			// Clean up all 7 segments so no floating mast parts remain
+			for (int i = 0; i < TOTAL_PARTS; i++) {
 				BlockPos checkPos = basePos.above(i);
 				if (checkPos.equals(pos)) continue;
 				BlockState s = level.getBlockState(checkPos);
@@ -116,8 +117,8 @@ public class FlagpoleBlock extends Block implements EntityBlock {
 	@Nullable
 	@Override
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-		// Top finial segment (part 3) hosts the FlagpoleBlockEntity to render the dynamic wind flag
-		if (state.getValue(PART) == 3) {
+		// Top finial segment (part 6) hosts the FlagpoleBlockEntity to render the wind flag
+		if (state.getValue(PART) == TOTAL_PARTS - 1) {
 			return new FlagpoleBlockEntity(pos, state);
 		}
 		return null;

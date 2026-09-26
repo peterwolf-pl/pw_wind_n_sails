@@ -37,8 +37,8 @@ public class FlagpoleItem extends BlockItem {
 			return InteractionResult.FAIL;
 		}
 
-		// Check that all 4 vertical blocks are clear and replaceable
-		for (int i = 0; i <= 3; i++) {
+		// Check that all 7 vertical blocks are clear and replaceable
+		for (int i = 0; i < FlagpoleBlock.TOTAL_PARTS; i++) {
 			BlockPos checkPos = basePos.above(i);
 			BlockState state = level.getBlockState(checkPos);
 			if (!state.canBeReplaced()) {
@@ -46,20 +46,19 @@ public class FlagpoleItem extends BlockItem {
 			}
 		}
 
-		if (!level.isClientSide()) {
-			BlockState baseState = this.getBlock().defaultBlockState();
-			for (int i = 0; i <= 3; i++) {
-				level.setBlock(basePos.above(i), baseState.setValue(FlagpoleBlock.PART, i), Block.UPDATE_ALL);
-			}
+		// Place all 7 parts of the tall mast
+		BlockState baseState = this.getBlock().defaultBlockState();
+		for (int i = 0; i < FlagpoleBlock.TOTAL_PARTS; i++) {
+			level.setBlock(basePos.above(i), baseState.setValue(FlagpoleBlock.PART, i), Block.UPDATE_ALL);
+		}
 
-			level.playSound(
-				null, basePos.getX() + 0.5, basePos.getY() + 0.5, basePos.getZ() + 0.5,
-				SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 1.0F, 0.9F
-			);
+		level.playSound(
+			null, basePos.getX() + 0.5, basePos.getY() + 0.5, basePos.getZ() + 0.5,
+			SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 1.0F, 0.9F
+		);
 
-			if (context.getPlayer() != null && !context.getPlayer().getAbilities().instabuild) {
-				context.getItemInHand().shrink(1);
-			}
+		if (!level.isClientSide() && context.getPlayer() != null && !context.getPlayer().getAbilities().instabuild) {
+			context.getItemInHand().shrink(1);
 		}
 
 		return InteractionResult.SUCCESS;

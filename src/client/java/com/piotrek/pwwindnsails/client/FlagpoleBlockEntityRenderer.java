@@ -52,6 +52,16 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 	}
 
 	@Override
+	public boolean shouldRenderOffScreen() {
+		return true;
+	}
+
+	@Override
+	public int getViewDistance() {
+		return 256;
+	}
+
+	@Override
 	public void submit(
 		FlagpoleRenderState state,
 		PoseStack stack,
@@ -59,7 +69,7 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		CameraRenderState camera
 	) {
 		stack.pushPose();
-		// Translate to the masthead near the finial (top of 4-block pole)
+		// Translate to the masthead near the finial (top of 7-block pole)
 		stack.translate(0.5D, 0.88D, 0.5D);
 
 		// Align yaw with world wind direction (streams leeward with wind)
@@ -73,15 +83,18 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		stack.rotateDegrees(Axis.ZP, -droopPitch);
 
 		// Scale: 1 unit in ModelPart = 1/16 block
-		stack.scale(1.0F / 16.0F, -1.0F / 16.0F, 1.0F / 16.0F);
+		stack.scale(1.0F / 16.0F, 1.0F / 16.0F, 1.0F / 16.0F);
 
 		this.model.setupAnim(state.windStrength, state.gameTime);
+
+		// Ensure bright outdoor daylight at the masthead
+		int light = Math.max(state.lightCoords, 15728880);
 
 		collector.submitModelPart(
 			this.model.getRoot(),
 			stack,
 			RenderTypes.entityCutout(TEXTURE),
-			state.lightCoords,
+			light,
 			OverlayTexture.NO_OVERLAY,
 			null
 		);

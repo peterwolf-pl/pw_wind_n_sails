@@ -5,7 +5,7 @@
   "item.pw_wind_n_sails.sailboat.desc": "Single-mast sailing boat steered with mouse, sheet trimmed with W/S, and weight balanced with A/D.",
   "block.pw_wind_n_sails.flagpole": "Flagpole",
   "item.pw_wind_n_sails.flagpole": "Flagpole",
-  "item.pw_wind_n_sails.flagpole.desc": "4-block tall mast with a wind indicator flag. Shows real-time wind direction and strength.",
+  "item.pw_wind_n_sails.flagpole.desc": "7-block tall mast with a wind indicator flag. Shows real-time wind direction and strength.",
   "key.categories.pw_wind_n_sails": "Peterwolf's Wind & Sails",
   "key.pw_wind_n_sails.toggle_wind": "Toggle Wind Hints (TAB)",
   "key.pw_wind_n_sails.toggle_sail": "Furl / Unfurl Sail (X)",
