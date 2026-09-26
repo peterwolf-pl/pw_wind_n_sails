@@ -77,19 +77,46 @@ public final class SailboatHudOverlay implements HudElement {
 		}
 		barStr.append("]");
 
+		float maxBoom = Mth.lerp(sheet, WindAndSailsConfig.MIN_BOOM_ANGLE_DEG, WindAndSailsConfig.MAX_BOOM_ANGLE_DEG);
+		float freeBoom = Math.min(WindAndSailsConfig.MAX_BOOM_ANGLE_DEG, relWindDeg);
+		float actualBoom = Math.min(maxBoom, freeBoom);
+		float aoa = relWindDeg - actualBoom;
+
+		String trimHint;
+		int colorTrim;
+		if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
+			trimHint = "IN IRONS (Kąt martwy)";
+			colorTrim = 0xFFFF5555; // Red
+		} else if (Math.abs(boat.getHeelAngle()) > 24.0F) {
+			trimHint = "PRZECHYŁ! Odpuść szot (S) / Ostrz (A/D)";
+			colorTrim = 0xFFFF3333; // Bright Red
+		} else if (aoa <= 1.0F && relWindDeg <= 90.0F) {
+			trimHint = "Żagiel w łopocie (Wybieraj W)";
+			colorTrim = 0xFFAAAAAA; // Gray
+		} else if (aoa >= 7.0F && aoa <= 22.0F) {
+			trimHint = "Trym optymalny (Maks. ciąg)";
+			colorTrim = 0xFF55FF55; // Green
+		} else if (aoa > 24.0F) {
+			trimHint = "Przebrany (Odpuść S)";
+			colorTrim = 0xFFFFAA00; // Orange
+		} else {
+			trimHint = pointOfSail;
+			colorTrim = colorPointOfSail;
+		}
+
 		float rudder = boat.getRudderAngle();
-		String rudderStr = Math.abs(rudder) < 1.0F ? "Centered" : rudder < 0 ? String.format("Port %.0f°", -rudder) : String.format("Stbd %.0f°", rudder);
-		String sheetText = String.format("Mainsheet: %d%% %s (W/S)  |  Rudder: %s (A/D)", sheetPct, barStr, rudderStr);
-		String speedText = String.format("Speed: %.1f kn  |  %s", speedKnots, pointOfSail);
+		String rudderStr = Math.abs(rudder) < 1.0F ? "Środek" : rudder < 0 ? String.format("Bakburta %.0f°", -rudder) : String.format("Sterburta %.0f°", rudder);
+		String sheetText = String.format("Szot: %d%% %s (W/S)  |  Ster: %s (A/D)", sheetPct, barStr, rudderStr);
+		String speedText = String.format("%.1f kn  |  %s  |  %s", speedKnots, pointOfSail, trimHint);
 
 		int hudX = width / 2;
 		int hudY = height - 68;
 
 		// Translucent dark background box
-		extractor.fill(hudX - 135, hudY - 4, hudX + 135, hudY + 22, 0x90000000);
-		extractor.outline(hudX - 135, hudY - 4, 270, 26, 0x40FFFFFF);
+		extractor.fill(hudX - 145, hudY - 4, hudX + 145, hudY + 22, 0x90000000);
+		extractor.outline(hudX - 145, hudY - 4, 290, 26, 0x40FFFFFF);
 
 		extractor.centeredText(font, Component.literal(sheetText), hudX, hudY, 0xFFFFFFFF);
-		extractor.centeredText(font, Component.literal(speedText), hudX, hudY + 11, colorPointOfSail);
+		extractor.centeredText(font, Component.literal(speedText), hudX, hudY + 11, colorTrim);
 	}
 }

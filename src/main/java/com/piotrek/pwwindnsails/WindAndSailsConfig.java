@@ -33,7 +33,7 @@ public final class WindAndSailsConfig {
 
 	// --- Rig & Sheet ---
 	public static final float MIN_BOOM_ANGLE_DEG = 6.0F;
-	public static final float MAX_BOOM_ANGLE_DEG = 84.0F;
+	public static final float MAX_BOOM_ANGLE_DEG = 88.0F; // fully eased boom trails wind line
 	public static final float SHEET_CHANGE_RATE = 0.04F; // per tick when W/S held
 
 	// --- Rudder (A / D Steering, Configurable via /windsails command) ---
@@ -61,9 +61,9 @@ public final class WindAndSailsConfig {
 	public static final float YAW_ANGULAR_DAMPING = 0.88F;  // Angular momentum carrying boat through turns
 
 	// --- Heel (Roll) ---
-	public static final float MAX_HEEL_DEG = 22.0F;
-	public static final float HEEL_SENSITIVITY = 18.0F;
-	public static final float HEEL_LERP_FACTOR = 0.12F;
+	public static final float MAX_HEEL_DEG = 32.0F;
+	public static final float HEEL_SENSITIVITY = 160.0F; // Realistic dynamic heel from sail lateral pressure
+	public static final float HEEL_LERP_FACTOR = 0.15F;
 
 	// --- Wind Visualizer ---
 	public static final float VISUALIZER_RADIUS = 28.0F;

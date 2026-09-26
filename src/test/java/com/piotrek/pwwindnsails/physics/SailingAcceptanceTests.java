@@ -89,6 +89,32 @@ public class SailingAcceptanceTests {
 	}
 
 	@Test
+	public void testFullyEasedSailLuffingAndTrimming() {
+		// Reach: wind towards East (from West = 90 deg). Boat heading South.
+		WindVector wind = new WindVector(270.0F, 0.70F);
+		Vec3 headway = new Vec3(0, 0, 0.10);
+
+		// Fully eased sail: boom trails wind line, zero lift developed
+		SailingPhysics.PhysicsResult eased = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 1.0F, wind, 0.0F, true
+		);
+
+		// Trimmed sail (pulled in to 0.75): developing strong aerodynamic lift
+		SailingPhysics.PhysicsResult trimmed = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.75F, wind, 0.0F, true
+		);
+
+		assertTrue(
+			trimmed.newVelocity().z > eased.newVelocity().z,
+			"Trimming sheet must pull sail into wind stream and generate forward drive"
+		);
+		assertTrue(
+			Math.abs(trimmed.heelAngleDeg()) > Math.abs(eased.heelAngleDeg()),
+			"Trimming sheet must create leeward heel force"
+		);
+	}
+
+	@Test
 	public void testGustPhysicallyAffectsBoat() {
 		// Base wind
 		WindVector baseWind = new WindVector(270.0F, 0.50F);

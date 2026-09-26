@@ -8,7 +8,11 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Aerodynamic and hydrodynamic simulation for sailboats.
  * Pure server-authoritative physics model with apparent wind, sail lift/drag,
- * mainsheet limits, keel lateral damping, and A/D rudder turning torque with auto-centering.
+ * authentic mainsheet trimming, and realistic dynamic heel.
+ *
+ * Eased sail flutters freely along the wind line generating zero thrust.
+ * Trimming the sheet pulls the sail to the centerline, generating drive and leeward heel.
+ * Easing the sheet or luffing up into the wind immediately sheds heeling force and rights the hull.
  */
 public final class SailingPhysics {
 	private SailingPhysics() {}
@@ -26,15 +30,6 @@ public final class SailingPhysics {
 
 	/**
 	 * Computes one physics tick for a sailboat.
-	 *
-	 * @param currentVelocity Current 3D velocity of the boat
-	 * @param currentYaw      Current boat yaw in degrees (Minecraft standard: 0=S, 90=W, 180=N, 270=E)
-	 * @param yawVelocity     Current angular velocity in degrees/tick
-	 * @param rudderAngleDeg  Current rudder angle (-32 to +32 degrees)
-	 * @param mainsheet       Mainsheet setting [0.0 = tight, 1.0 = fully eased]
-	 * @param trueWind        Current true wind vector at boat location
-	 * @param currentHeelDeg  Current visual/physical heel angle
-	 * @param inWater         True if the boat hull is in water
 	 */
 	public static PhysicsResult step(
 		Vec3 currentVelocity,
@@ -105,12 +100,15 @@ public final class SailingPhysics {
 		float clampedSheet = Mth.clamp(mainsheet, 0.0F, 1.0F);
 		float maxBoomAngle = Mth.lerp(clampedSheet, WindAndSailsConfig.MIN_BOOM_ANGLE_DEG, WindAndSailsConfig.MAX_BOOM_ANGLE_DEG);
 
-		// Wind blows the boom out to leeward (opposite to the wind side) up to maxBoomAngle
-		float desiredBoomMag = Math.min(maxBoomAngle, absRelWind * 0.55F);
-		// Boom angle is negative if wind from starboard, positive if wind from port
-		float boomAngleDeg = -windSideSign * desiredBoomMag;
+		// The boom is blown freely out towards the apparent wind line (up to physical rig limit ~88 deg).
+		// But is restrained and pulled inward towards the boat's centerline by the mainsheet:
+		float freeWindBoomAngle = Math.min(WindAndSailsConfig.MAX_BOOM_ANGLE_DEG, absRelWind);
+		float actualBoomMag = Math.min(maxBoomAngle, freeWindBoomAngle);
 
-		// 4. No-go zone check
+		// Signed boom angle: negative if wind from starboard, positive if wind from port (leeward)
+		float boomAngleDeg = -windSideSign * actualBoomMag;
+
+		// 4. No-go zone check (In Irons)
 		boolean inIrons = absRelWind < WindAndSailsConfig.NO_GO_ZONE_DEG;
 
 		// 5. Aerodynamic sail forces
@@ -127,24 +125,28 @@ public final class SailingPhysics {
 				double headDrag = 0.04 * dynamicPressure;
 				forwardThrust = -headDrag;
 			} else {
-				// Angle of attack: difference between apparent wind angle and boom angle
-				float aoaDeg = absRelWind - desiredBoomMag;
+				// Angle of attack: difference between apparent wind line and trimmed boom angle
+				float aoaDeg = absRelWind - actualBoomMag;
 
 				// Lift coefficient curve
+				// When sheet is fully eased, aoaDeg is ~0, so lift is 0.
+				// As sheet is trimmed (W), aoaDeg increases, developing lift up to peak at ~15 deg.
 				float cl = 0.0F;
-				if (aoaDeg > 0.0F) {
+				if (aoaDeg > 0.8F) {
 					float x = aoaDeg / WindAndSailsConfig.OPTIMAL_AOA_DEG;
 					if (x <= 1.0F) {
 						cl = WindAndSailsConfig.LIFT_COEFF_PEAK * (2.0F * x - x * x);
 					} else {
+						// Over-sheeted stall: flow separates, lift decreases
 						cl = (float) (WindAndSailsConfig.LIFT_COEFF_PEAK * Math.exp(-0.75 * (x - 1.0F)));
 					}
 				}
 
-				// Drag coefficient
+				// Drag coefficient: profile drag + induced drag + downwind broadside drag
 				float cdInd = 0.16F * cl * cl;
 				float downwindRatio = absRelWind / 180.0F;
-				float cdDownwind = WindAndSailsConfig.DRAG_COEFF_DOWNWIND * downwindRatio * downwindRatio;
+				float cdDownwind = WindAndSailsConfig.DRAG_COEFF_DOWNWIND * downwindRatio * downwindRatio
+					* (float) Math.pow(Math.sin(actualBoomMag * Mth.DEG_TO_RAD), 2.0);
 				float cd = WindAndSailsConfig.DRAG_COEFF_MIN + cdInd + cdDownwind;
 
 				double lift = cl * dynamicPressure;
@@ -196,12 +198,17 @@ public final class SailingPhysics {
 		double newRightZ = Mth.sin(newYawRad);
 
 		// 9. Heel (roll) angle
-		float targetHeel = (float) Mth.clamp(
-			-lateralAeroForce * WindAndSailsConfig.HEEL_SENSITIVITY,
-			-WindAndSailsConfig.MAX_HEEL_DEG,
-			WindAndSailsConfig.MAX_HEEL_DEG
-		);
-		float newHeel = Mth.lerp(WindAndSailsConfig.HEEL_LERP_FACTOR, currentHeelDeg, targetHeel);
+		// Lateral force from the sail heels the boat to leeward
+		double targetHeel = -lateralAeroForce * WindAndSailsConfig.HEEL_SENSITIVITY;
+
+		// If boat heels steeply (> 26 deg), the sail is angled away from vertical and spills wind
+		if (Math.abs(targetHeel) > 26.0) {
+			double spillFactor = Math.max(0.25, 1.0 - (Math.abs(targetHeel) - 26.0) * 0.12);
+			forwardThrust *= spillFactor;
+		}
+
+		targetHeel = Mth.clamp(targetHeel, -WindAndSailsConfig.MAX_HEEL_DEG, WindAndSailsConfig.MAX_HEEL_DEG);
+		float newHeel = (float) Mth.lerp(WindAndSailsConfig.HEEL_LERP_FACTOR, currentHeelDeg, targetHeel);
 
 		double newVx = vForward * newHeadingX + vLateral * newRightX;
 		double newVz = vForward * newHeadingZ + vLateral * newRightZ;
