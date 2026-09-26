@@ -18,27 +18,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 7-block tall mast/flagpole with an animated wind flag on top.
- * Part 0 = base on ground, Parts 1..5 = middle pole segments, Part 6 = masthead finial with flag.
+ * 7-block tall dark-gray mast with an animated wind flag on top.
+ * Every part is the same thin pole. The flag is rendered on part 6.
  */
 public class FlagpoleBlock extends Block implements EntityBlock {
 	public static final int TOTAL_PARTS = 7;
 	public static final IntegerProperty PART = IntegerProperty.create("part", 0, TOTAL_PARTS - 1);
 
-	private static final VoxelShape POLE_SHAPE = Block.box(6.5, 0.0, 6.5, 9.5, 16.0, 9.5);
-	private static final VoxelShape BASE_SHAPE = Shapes.or(
-		Block.box(4.0, 0.0, 4.0, 12.0, 3.0, 12.0),
-		Block.box(6.5, 0.0, 6.5, 9.5, 16.0, 9.5)
-	);
-	private static final VoxelShape TOP_SHAPE = Shapes.or(
-		Block.box(6.5, 0.0, 6.5, 9.5, 14.0, 9.5),
-		Block.box(5.0, 14.0, 5.0, 11.0, 16.0, 11.0)
-	);
+	private static final VoxelShape POLE_SHAPE = Block.box(7.0, 0.0, 7.0, 9.0, 16.0, 9.0);
 
 	public FlagpoleBlock(BlockBehaviour.Properties properties) {
 		super(properties);
@@ -52,9 +43,6 @@ public class FlagpoleBlock extends Block implements EntityBlock {
 
 	@Override
 	public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-		int part = state.getValue(PART);
-		if (part == 0) return BASE_SHAPE;
-		if (part == TOTAL_PARTS - 1) return TOP_SHAPE;
 		return POLE_SHAPE;
 	}
 

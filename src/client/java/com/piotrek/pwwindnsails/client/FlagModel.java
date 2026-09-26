@@ -53,16 +53,21 @@ public final class FlagModel extends Model<FlagpoleRenderState> {
 	@Override
 	public void setupAnim(FlagpoleRenderState state) {
 		super.setupAnim(state);
-		float windFactor = Mth.clamp(state.windStrength / 0.65F, 0.0F, 1.0F);
+		float windFactor = Mth.clamp((state.windStrength - 0.18F) / 0.40F, 0.0F, 1.0F);
+		float limp = 1.0F - windFactor;
 		float waveSpeed = 0.25F + state.windStrength * 0.45F;
 		float phase = state.gameTime * waveSpeed;
 
-		// Aerodynamic wave propagating along the flag's length
 		this.seg1.yRot = Mth.sin(phase) * 0.07F * windFactor;
 		this.seg2.yRot = Mth.sin(phase - 1.2F) * 0.18F * windFactor;
 		this.seg3.yRot = Mth.sin(phase - 2.4F) * 0.32F * windFactor;
 
-		this.seg2.zRot = Mth.cos(phase - 0.8F) * 0.04F * windFactor;
-		this.seg3.zRot = Mth.cos(phase - 2.0F) * 0.09F * windFactor;
+		// Very light wind: panel 2 and panel 3 drop so each top sits at half
+		// the cloth height of the panel before it.
+		float halfPrevious = 8.0F * limp;
+		this.seg2.y = -halfPrevious;
+		this.seg3.y = -halfPrevious;
+		this.seg2.zRot = Mth.lerp(limp, Mth.cos(phase - 0.8F) * 0.04F * windFactor, -0.85F);
+		this.seg3.zRot = Mth.lerp(limp, Mth.cos(phase - 2.0F) * 0.09F * windFactor, -0.85F);
 	}
 }

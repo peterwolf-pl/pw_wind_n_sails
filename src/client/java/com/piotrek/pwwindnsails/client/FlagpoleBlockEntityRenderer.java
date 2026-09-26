@@ -68,15 +68,16 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		}
 
 		stack.pushPose();
-		// Hoist at the finial. ModelPart already converts pixel units to blocks.
-		stack.translate(0.5D, 0.92D, 0.5D);
+		// Hoist at the top of the plain pole.
+		stack.translate(0.5D, 0.98D, 0.5D);
 
 		// Stream downwind. Yaw 0 in this space is +X, which is world yaw 270.
 		stack.rotateDegrees(Axis.YP, 270.0F - state.windDirectionDeg);
 
-		// Calm: hang down the lee side. Strong wind: fly out nearly level.
-		float windFactor = Mth.clamp(state.windStrength / 0.65F, 0.0F, 1.0F);
-		float droopPitch = Mth.lerp(windFactor, 76.0F, 1.0F);
+		// Light wind keeps the hoist panel only slightly down, so the outer
+		// panels can fall to half the previous panel's height. Strong wind flies flat.
+		float windFactor = Mth.clamp((state.windStrength - 0.18F) / 0.40F, 0.0F, 1.0F);
+		float droopPitch = Mth.lerp(windFactor, 18.0F, 1.0F);
 		stack.rotateDegrees(Axis.ZP, -droopPitch);
 
 		this.model.setupAnim(state);
