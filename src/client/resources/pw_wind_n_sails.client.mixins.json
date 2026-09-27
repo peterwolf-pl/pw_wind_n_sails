@@ -4,9 +4,7 @@
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"AvatarRendererMixin",
-		"CampfireSmokeParticleMixin",
-		"BaseAshSmokeParticleMixin",
-		"FallingParticleMixin"
+		"ParticleMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
