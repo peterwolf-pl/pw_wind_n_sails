@@ -3,7 +3,10 @@
 	"package": "com.piotrek.pwwindnsails.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"AvatarRendererMixin"
+		"AvatarRendererMixin",
+		"CampfireSmokeParticleMixin",
+		"BaseAshSmokeParticleMixin",
+		"FallingParticleMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

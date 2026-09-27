@@ -93,6 +93,7 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.level != null) {
 				WindManager.getInstance().tickClient(client.level.getGameTime());
+				TreeWindAmbienceHandler.tick(client);
 			}
 
 			if (spaceTapTimer > 0) {

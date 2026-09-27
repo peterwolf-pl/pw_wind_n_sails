@@ -51,6 +51,7 @@ A realistic, immersive, yet deeply playable wind and sailing mod for Minecraft 2
 
 - `/windsails wind` — Show current wind direction, speed in knots, active gusts, and forecast
 - `/windsails wind set <strength> [direction]` — Set wind speed and direction (e.g. `0.0` for flauta)
+- `/windsails environment [true|false]` — Toggle environmental wind influence on smoke, trees, and leaves (alias: `/windsails env`)
 - `/windsails rudder sensitivity` — Check current rudder sensitivity (default: 1.0)
 - `/windsails rudder sensitivity <0.1 - 5.0>` — Set rudder turning sensitivity in real-time without restart
 - `/windsails rudder autocenter <rate>` — Set auto-center return speed (degrees/tick, default: 2.5)

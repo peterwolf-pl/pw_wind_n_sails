@@ -257,4 +257,25 @@ public class WindTest {
 		assertEquals(WindVisualizerRenderer.VisualizerMode.SEAFOAM_WHITE, m0);
 		assertTrue(WindVisualizerRenderer.isEnabled());
 	}
+
+	@Test
+	public void testEnvironmentalWindEffectsConfigAndPayload() {
+		com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects = true;
+		assertTrue(com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects);
+
+		// Test payload sync
+		com.piotrek.pwwindnsails.network.WindSyncPayload payloadOff = new com.piotrek.pwwindnsails.network.WindSyncPayload(
+			180.0F, 0.5F, 180.0F, 0.5F, false, 0L, 0, 0.0F, 1.0F, 100L, "Prognoza", false
+		);
+		assertFalse(payloadOff.environmentalEffects());
+		WindManager.getInstance().applyClientSync(payloadOff);
+		assertFalse(com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects);
+
+		com.piotrek.pwwindnsails.network.WindSyncPayload payloadOn = new com.piotrek.pwwindnsails.network.WindSyncPayload(
+			180.0F, 0.5F, 180.0F, 0.5F, false, 0L, 0, 0.0F, 1.0F, 100L, "Prognoza", true
+		);
+		assertTrue(payloadOn.environmentalEffects());
+		WindManager.getInstance().applyClientSync(payloadOn);
+		assertTrue(com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects);
+	}
 }

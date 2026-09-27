@@ -53,6 +53,20 @@
 - **Nowe polecenia diagnostyczne**:
   - `/windsails wind` – szczegółowe dane telemetryczne wiatru i prognoza pogody.
   - `/windsails wind set <siła> [kierunek]` – ustawianie parametrów wiatru przez administratorów (w tym testowej flauty `0.0`).
+  - `/windsails environment [true|false]` (alias: `/windsails env`) – przełączanie wpływu wiatru na otoczenie (dym, drzewa, liście).
+
+### 🍃 Wpływ wiatru na dym, drzewa i liście (`/windsails env`)
+- **Dym z ognisk i pieców (`CampfireSmokeParticle`, `SmokeParticle`, `LargeSmokeParticle`)**:
+  - Płynne znoszenie dymu z wiatrem – cząsteczki dymu układają się w ciągłe, znoszone smugi dokładnie według wektora kierunku i siły wiatru.
+  - Przy flaucie dym wznosi się pionowo ku górze, przy silnym wietrze i szkwałach kładzie się nisko i szybko przemieszcza.
+- **Spadające liście (`FallingParticle`)**:
+  - Spadające liście wiśni, bladego dębu i topoli są unoszone i znoszone horyzontalnie przez wiatr proporcjonalnie do jego prędkości.
+- **Drzewa i korony leśne (`TreeWindAmbienceHandler`)**:
+  - Wiatr wiejący przez korony drzew (`#minecraft:leaves`) zrywa liście odpowiadające dokładnemu kolorowi ulistnienia danego drzewa (`ParticleTypes.TINTED_LEAVES`), unosząc je w powietrzu ze świstem wiatru.
+  - Częstotliwość zrywania liści zależy bezpośrednio od siły wiatru i gwałtowności szkwałów (od pojedynczych powiewów do gęstych strumieni liści w wichurze).
+  - W umiarkowanym i silnym wietrze w koronach drzew odtwarzany jest subtelny dźwięk szumu i trzepotu liści.
+- **Pełna kontrola komendą**:
+  - Komenda `/windsails environment <true|false>` lub `/windsails env` pozwala włączyć lub wyłączyć wpływ wiatru na otoczenie w dowolnym momencie.
 
 ### 🌊 Wybór stylów wskaźnika wiatru na wodzie (Cykl klawiszem TAB)
 - **Cykl 5 stylów wizualnych pod klawiszem TAB**:

@@ -17,7 +17,8 @@ public record WindSyncPayload(
 	float gustShiftDeg,
 	float gustStrengthMult,
 	long gameTick,
-	String forecast
+	String forecast,
+	boolean environmentalEffects
 ) implements CustomPacketPayload {
 	public static final Type<WindSyncPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(WindAndSailsMod.MOD_ID, "wind_sync"));
 
@@ -33,7 +34,23 @@ public record WindSyncPayload(
 		float gustStrengthMult,
 		long gameTick
 	) {
-		this(baseDirection, baseStrength, targetDirection, targetStrength, gustActive, gustStartTick, gustDurationTicks, gustShiftDeg, gustStrengthMult, gameTick, "Stabilna pogoda");
+		this(baseDirection, baseStrength, targetDirection, targetStrength, gustActive, gustStartTick, gustDurationTicks, gustShiftDeg, gustStrengthMult, gameTick, "Stabilna pogoda", true);
+	}
+
+	public WindSyncPayload(
+		float baseDirection,
+		float baseStrength,
+		float targetDirection,
+		float targetStrength,
+		boolean gustActive,
+		long gustStartTick,
+		int gustDurationTicks,
+		float gustShiftDeg,
+		float gustStrengthMult,
+		long gameTick,
+		String forecast
+	) {
+		this(baseDirection, baseStrength, targetDirection, targetStrength, gustActive, gustStartTick, gustDurationTicks, gustShiftDeg, gustStrengthMult, gameTick, forecast, true);
 	}
 
 	public static final StreamCodec<RegistryFriendlyByteBuf, WindSyncPayload> CODEC = new StreamCodec<>() {
@@ -50,7 +67,8 @@ public record WindSyncPayload(
 				buf.readFloat(),
 				buf.readFloat(),
 				buf.readLong(),
-				buf.readUtf()
+				buf.readUtf(),
+				buf.readBoolean()
 			);
 		}
 
@@ -67,6 +85,7 @@ public record WindSyncPayload(
 			buf.writeFloat(p.gustStrengthMult);
 			buf.writeLong(p.gameTick);
 			buf.writeUtf(p.forecast);
+			buf.writeBoolean(p.environmentalEffects);
 		}
 	};
 

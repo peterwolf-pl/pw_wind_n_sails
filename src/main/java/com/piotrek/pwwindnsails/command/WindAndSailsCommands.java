@@ -1,6 +1,7 @@
 package com.piotrek.pwwindnsails.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.piotrek.pwwindnsails.WindAndSailsConfig;
@@ -157,6 +158,52 @@ public final class WindAndSailsCommands {
 					)
 				)
 			)
+			.then(Commands.literal("environment")
+				.executes(ctx -> {
+					ctx.getSource().sendSuccess(
+						() -> Component.literal(String.format("§b[Wind & Sails]§r Wpływ wiatru na otoczenie (dym, drzewa, liście): %s",
+							WindAndSailsConfig.environmentalWindEffects ? "§aWŁĄCZONY§r" : "§cWYŁĄCZONY§r")),
+						false
+					);
+					return 1;
+				})
+				.then(Commands.argument("enabled", BoolArgumentType.bool())
+					.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+					.executes(ctx -> {
+						boolean val = BoolArgumentType.getBool(ctx, "enabled");
+						WindAndSailsConfig.environmentalWindEffects = val;
+						ctx.getSource().sendSuccess(
+							() -> Component.literal(String.format("§b[Wind & Sails]§r Wpływ wiatru na otoczenie (dym, drzewa, liście) ustawiony na: %s",
+								val ? "§aWŁĄCZONY§r" : "§cWYŁĄCZONY§r")),
+							true
+						);
+						return 1;
+					})
+				)
+			)
+			.then(Commands.literal("env")
+				.executes(ctx -> {
+					ctx.getSource().sendSuccess(
+						() -> Component.literal(String.format("§b[Wind & Sails]§r Wpływ wiatru na otoczenie (dym, drzewa, liście): %s",
+							WindAndSailsConfig.environmentalWindEffects ? "§aWŁĄCZONY§r" : "§cWYŁĄCZONY§r")),
+						false
+					);
+					return 1;
+				})
+				.then(Commands.argument("enabled", BoolArgumentType.bool())
+					.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+					.executes(ctx -> {
+						boolean val = BoolArgumentType.getBool(ctx, "enabled");
+						WindAndSailsConfig.environmentalWindEffects = val;
+						ctx.getSource().sendSuccess(
+							() -> Component.literal(String.format("§b[Wind & Sails]§r Wpływ wiatru na otoczenie (dym, drzewa, liście) ustawiony na: %s",
+								val ? "§aWŁĄCZONY§r" : "§cWYŁĄCZONY§r")),
+							true
+						);
+						return 1;
+					})
+				)
+			)
 			.then(Commands.literal("status")
 				.executes(ctx -> {
 					ServerLevel level = ctx.getSource().getLevel();
@@ -170,6 +217,7 @@ public final class WindAndSailsCommands {
 						() -> Component.literal(String.format(
 							"§b[Wind & Sails Status]§r\n" +
 							"§7Wiatr:§r §e%.1f°§r (%s), Siła: §a%.2f§r (~%.1f kn) [%s]\n" +
+							"§7Wpływ na otoczenie (dym/drzewa/liście):§r %s\n" +
 							"§7Rudder Sensitivity:§r §e%.2f§r\n" +
 							"§7Rudder Turn Rate:§r §e%.1f°/tick§r\n" +
 							"§7Rudder Auto-Center Rate:§r §e%.1f°/tick§r\n" +
@@ -179,6 +227,7 @@ public final class WindAndSailsCommands {
 							wind.strength(),
 							wind.strength() * 38.87,
 							dayTypeStr,
+							WindAndSailsConfig.environmentalWindEffects ? "§aWŁĄCZONY§r" : "§cWYŁĄCZONY§r",
 							WindAndSailsConfig.rudderSensitivity,
 							WindAndSailsConfig.rudderRatePerTick,
 							WindAndSailsConfig.rudderAutoCenterRate,

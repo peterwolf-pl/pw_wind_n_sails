@@ -68,4 +68,7 @@ public final class WindAndSailsConfig {
 	// --- Wind Visualizer ---
 	public static final float VISUALIZER_RADIUS = 28.0F;
 	public static final float VISUALIZER_ARROW_HEIGHT_OFFSET = 0.015F;
+
+	// --- Environmental Wind Effects (Smoke, Trees, Leaves) ---
+	public static boolean environmentalWindEffects = true;
 }

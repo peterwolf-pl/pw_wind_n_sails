@@ -88,6 +88,7 @@ public final class WindManager {
 		this.clientState.setTarget(payload.targetDirection(), payload.targetStrength());
 		this.clientState.setBase(payload.baseDirection(), payload.baseStrength());
 		this.clientState.setForecast(payload.forecast());
+		com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects = payload.environmentalEffects();
 
 		if (payload.gustActive()) {
 			this.clientState.setCurrentGust(new WindGust(
@@ -125,7 +126,8 @@ public final class WindManager {
 			gustActive ? gust.getDirectionShiftDeg() : 0.0F,
 			gustActive ? gust.getStrengthMultiplier() : 1.0F,
 			currentTick,
-			forecast
+			forecast,
+			com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects
 		);
 	}
 }
