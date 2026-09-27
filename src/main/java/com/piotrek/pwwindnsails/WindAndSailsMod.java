@@ -117,6 +117,9 @@ public final class WindAndSailsMod implements ModInitializer {
 					if (payload.toggleSail()) {
 						boat.toggleSailFurled();
 					}
+					if (payload.targetHikeMode() >= 0) {
+						boat.setHikeMode(payload.targetHikeMode());
+					}
 				}
 			});
 		});

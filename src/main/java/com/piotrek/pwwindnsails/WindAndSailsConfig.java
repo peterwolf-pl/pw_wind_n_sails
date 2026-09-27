@@ -14,10 +14,10 @@ public final class WindAndSailsConfig {
 	public static final float SAIL_AREA = 5.0F;
 
 	// --- Wind Simulation ---
-	public static final float WIND_SPEED_MIN = 0.25F;
-	public static final float WIND_SPEED_MAX = 0.85F;
+	public static final float WIND_SPEED_MIN = 0.0F; // Supports complete calm / flauta
+	public static final float WIND_SPEED_MAX = 0.95F;
 	public static final float WIND_DIR_CHANGE_RATE = 0.15F; // Degrees per tick smooth wander
-	public static final float WIND_SPEED_CHANGE_RATE = 0.001F;
+	public static final float WIND_SPEED_CHANGE_RATE = 0.0015F;
 
 	// Overworld prevailing wind alignment: Minecraft clouds drift east (+X, which in MC yaw is 270 or -90 deg).
 	public static final float PREVAILING_WIND_DIR = 270.0F; // Facing +X
@@ -67,5 +67,5 @@ public final class WindAndSailsConfig {
 
 	// --- Wind Visualizer ---
 	public static final float VISUALIZER_RADIUS = 28.0F;
-	public static final float VISUALIZER_ARROW_HEIGHT_OFFSET = 0.06F;
+	public static final float VISUALIZER_ARROW_HEIGHT_OFFSET = 0.015F;
 }

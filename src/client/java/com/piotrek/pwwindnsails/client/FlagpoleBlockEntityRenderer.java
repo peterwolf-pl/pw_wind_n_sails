@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -46,11 +47,23 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		state.isTopPart = blockEntity.getBlockState().getValue(FlagpoleBlock.PART) == FlagpoleBlock.TOTAL_PARTS - 1;
 		Level level = blockEntity.getLevel();
 		if (level != null && state.isTopPart) {
-			WindVector wind = WindManager.getInstance().getWind(level, Vec3.atCenterOf(blockEntity.getBlockPos()));
+			BlockPos pos = blockEntity.getBlockPos();
+			WindVector wind = WindManager.getInstance().getWind(level, Vec3.atCenterOf(pos));
 			state.windDirectionDeg = wind.directionDeg();
 			state.windStrength = wind.strength();
 			state.gameTime = level.getGameTime() + partialTicks;
 			state.tint = blockEntity.getColor().getTextureDiffuseColor();
+
+			// Spatial hash to desynchronize flags across different locations
+			long h = (long) pos.getX() * 3129871L ^ (long) pos.getZ() * 116129781L ^ (long) pos.getY() * 4231L;
+			h = (h ^ (h >>> 16)) * 0x45d9f3bL;
+			h = (h ^ (h >>> 16)) * 0x45d9f3bL;
+			h = h ^ (h >>> 16);
+
+			state.phaseOffset = (float) ((h & 0xFFFF) / 65535.0 * 2.0 * Math.PI);
+			state.speedMultiplier = 0.88F + (float) (((h >>> 16) & 0xFF) / 255.0) * 0.24F; // 0.88x - 1.12x speed
+			state.flutterOffset = (float) (((h >>> 24) & 0xFF) / 255.0 * 2.0 * Math.PI);
+			state.amplitudeScale = 0.90F + (float) (((h >>> 8) & 0xFF) / 255.0) * 0.20F;  // 0.90x - 1.10x amplitude
 		}
 	}
 

@@ -55,19 +55,21 @@ public final class FlagModel extends Model<FlagpoleRenderState> {
 		super.setupAnim(state);
 		float windFactor = Mth.clamp((state.windStrength - 0.18F) / 0.40F, 0.0F, 1.0F);
 		float limp = 1.0F - windFactor;
-		float waveSpeed = 0.25F + state.windStrength * 0.45F;
-		float phase = state.gameTime * waveSpeed;
+		float waveSpeed = (0.25F + state.windStrength * 0.45F) * (state.speedMultiplier > 0.01F ? state.speedMultiplier : 1.0F);
+		float phase = state.gameTime * waveSpeed + state.phaseOffset;
+		float flutter = Mth.sin(phase * 2.15F + state.flutterOffset) * 0.14F;
+		float amp = (state.amplitudeScale > 0.01F ? state.amplitudeScale : 1.0F);
 
-		this.seg1.yRot = Mth.sin(phase) * 0.07F * windFactor;
-		this.seg2.yRot = Mth.sin(phase - 1.2F) * 0.18F * windFactor;
-		this.seg3.yRot = Mth.sin(phase - 2.4F) * 0.32F * windFactor;
+		this.seg1.yRot = (Mth.sin(phase) * 0.07F + flutter * 0.02F) * windFactor * amp;
+		this.seg2.yRot = (Mth.sin(phase - 1.2F) * 0.18F + flutter * 0.05F) * windFactor * amp;
+		this.seg3.yRot = (Mth.sin(phase - 2.4F) * 0.32F + flutter * 0.10F) * windFactor * amp;
 
 		// Very light wind: each next panel stays parallel and connected, but its
 		// top sits at half the cloth height of the panel before it.
 		float halfPrevious = 8.0F * limp;
 		this.seg2.y = -halfPrevious;
 		this.seg3.y = -halfPrevious;
-		this.seg2.zRot = Mth.cos(phase - 0.8F) * 0.04F * windFactor;
-		this.seg3.zRot = Mth.cos(phase - 2.0F) * 0.09F * windFactor;
+		this.seg2.zRot = (Mth.cos(phase - 0.8F) * 0.04F + flutter * 0.02F) * windFactor * amp;
+		this.seg3.zRot = (Mth.cos(phase - 2.0F) * 0.09F + flutter * 0.04F) * windFactor * amp;
 	}
 }

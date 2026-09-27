@@ -61,6 +61,11 @@ public final class WindVisualizerRenderer {
 
 		float windDeg = wind.directionDeg();
 		float windStr = wind.strength();
+		if (windStr < 0.04F) {
+			// Flauta / Calm doldrums: clear glassy water without wind streaks
+			return;
+		}
+
 		float windRad = windDeg * Mth.DEG_TO_RAD;
 		// Vector pointing in direction wind blows
 		float dirX = -Mth.sin(windRad);
@@ -80,23 +85,36 @@ public final class WindVisualizerRenderer {
 		PoseStack poseStack = context.poseStack();
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
-		// Arrow color: luminous aqua/cyan, shifts to warm gold during gust
-		int r = isGusting ? 255 : 140;
-		int g = isGusting ? 220 : 230;
-		int b = isGusting ? 130 : 255;
-		int a = isGusting ? 220 : 170;
+		// Realistic water darkening (cat's paws / wind ripples):
+		// Deep midnight marine shadow that darkens the water surface beneath it
+		float alphaFactor = Mth.clamp((windStr - 0.04F) / 0.12F, 0.0F, 1.0F);
+		int r = isGusting ? 6 : 8;
+		int g = isGusting ? 18 : 24;
+		int b = isGusting ? 38 : 48;
+		int maxAlpha = isGusting ? 82 : 56;
 
 		float animTime = (gameTime + partialTick) * (windStr * 0.12F);
-		float arrowLength = 0.8F + windStr * 1.2F;
-		float barbLength = 0.35F;
+		float arrowLength = 1.1F + windStr * 1.5F;
+		float width = 0.28F + windStr * 0.16F;
+		float hw = width * 0.5F;
+		float headLen = arrowLength * 0.40F;
 
 		context.submitNodeCollector().submitCustomGeometry(
 			poseStack,
-			RenderTypes.linesTranslucent(),
+			RenderTypes.debugQuads(),
 			(pose, consumer) -> {
 				for (int dx = -radius; dx <= radius; dx += step) {
 					for (int dz = -radius; dz <= radius; dz += step) {
-						if (dx * dx + dz * dz > radius * radius) {
+						int distSq = dx * dx + dz * dz;
+						if (distSq > radius * radius) {
+							continue;
+						}
+
+						// Soft distance fade towards the perimeter
+						float distRatio = (float) Math.sqrt(distSq) / (float) radius;
+						float distFade = Mth.clamp(1.0F - distRatio * distRatio, 0.0F, 1.0F);
+						int a = (int) (maxAlpha * alphaFactor * distFade);
+						if (a < 3) {
 							continue;
 						}
 
@@ -118,19 +136,28 @@ public final class WindVisualizerRenderer {
 
 								double endX = startX + dirX * arrowLength;
 								double endZ = startZ + dirZ * arrowLength;
+								double neckX = endX - dirX * headLen;
+								double neckZ = endZ - dirZ * headLen;
 
-								// Draw main arrow shaft
-								drawLine(consumer, pose, startX, startY, startZ, endX, startY, endZ, r, g, b, a);
+								// 1. Thick main body ribbon (tapers from tail to neck)
+								drawQuad(
+									consumer, pose,
+									startX - perpX * (hw * 0.45), startY, startZ - perpZ * (hw * 0.45),
+									startX + perpX * (hw * 0.45), startY, startZ + perpZ * (hw * 0.45),
+									neckX + perpX * hw, startY, neckZ + perpZ * hw,
+									neckX - perpX * hw, startY, neckZ - perpZ * hw,
+									r, g, b, a
+								);
 
-								// Draw left barb
-								double barbLeftX = endX - (dirX * barbLength) + (perpX * barbLength * 0.55);
-								double barbLeftZ = endZ - (dirZ * barbLength) + (perpZ * barbLength * 0.55);
-								drawLine(consumer, pose, endX, startY, endZ, barbLeftX, startY, barbLeftZ, r, g, b, a);
-
-								// Draw right barb
-								double barbRightX = endX - (dirX * barbLength) - (perpX * barbLength * 0.55);
-								double barbRightZ = endZ - (dirZ * barbLength) - (perpZ * barbLength * 0.55);
-								drawLine(consumer, pose, endX, startY, endZ, barbRightX, startY, barbRightZ, r, g, b, a);
+								// 2. Thick arrowhead chevron (broad dark ripple tip)
+								drawQuad(
+									consumer, pose,
+									neckX - perpX * (hw * 2.3), startY, neckZ - perpZ * (hw * 2.3),
+									endX, startY, endZ,
+									neckX + perpX * (hw * 2.3), startY, neckZ + perpZ * (hw * 2.3),
+									neckX, startY, neckZ,
+									r, g, b, a
+								);
 
 								break;
 							}
@@ -141,29 +168,18 @@ public final class WindVisualizerRenderer {
 		);
 	}
 
-	private static void drawLine(
+	private static void drawQuad(
 		VertexConsumer consumer,
 		PoseStack.Pose pose,
+		double x0, double y0, double z0,
 		double x1, double y1, double z1,
 		double x2, double y2, double z2,
+		double x3, double y3, double z3,
 		int r, int g, int b, int a
 	) {
-		float dx = (float) (x2 - x1);
-		float dy = (float) (y2 - y1);
-		float dz = (float) (z2 - z1);
-		float len = Mth.sqrt(dx * dx + dy * dy + dz * dz);
-		float nx = len > 1e-4F ? dx / len : 0.0F;
-		float ny = len > 1e-4F ? dy / len : 1.0F;
-		float nz = len > 1e-4F ? dz / len : 0.0F;
-
-		consumer.addVertex(pose, (float) x1, (float) y1, (float) z1)
-			.setColor(r, g, b, a)
-			.setNormal(pose, nx, ny, nz)
-			.setLineWidth(2.5F);
-
-		consumer.addVertex(pose, (float) x2, (float) y2, (float) z2)
-			.setColor(r, g, b, a)
-			.setNormal(pose, nx, ny, nz)
-			.setLineWidth(2.5F);
+		consumer.addVertex(pose, (float) x0, (float) y0, (float) z0).setColor(r, g, b, a);
+		consumer.addVertex(pose, (float) x1, (float) y1, (float) z1).setColor(r, g, b, a);
+		consumer.addVertex(pose, (float) x2, (float) y2, (float) z2).setColor(r, g, b, a);
+		consumer.addVertex(pose, (float) x3, (float) y3, (float) z3).setColor(r, g, b, a);
 	}
 }

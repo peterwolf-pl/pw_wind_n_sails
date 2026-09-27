@@ -9,3 +9,6 @@ out/
 *.ipr
 *.iws
 .DS_Store
+.pi-many-agents/
+worktrees/
+

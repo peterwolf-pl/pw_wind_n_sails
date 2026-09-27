@@ -16,9 +16,25 @@ public record WindSyncPayload(
 	int gustDurationTicks,
 	float gustShiftDeg,
 	float gustStrengthMult,
-	long gameTick
+	long gameTick,
+	String forecast
 ) implements CustomPacketPayload {
 	public static final Type<WindSyncPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(WindAndSailsMod.MOD_ID, "wind_sync"));
+
+	public WindSyncPayload(
+		float baseDirection,
+		float baseStrength,
+		float targetDirection,
+		float targetStrength,
+		boolean gustActive,
+		long gustStartTick,
+		int gustDurationTicks,
+		float gustShiftDeg,
+		float gustStrengthMult,
+		long gameTick
+	) {
+		this(baseDirection, baseStrength, targetDirection, targetStrength, gustActive, gustStartTick, gustDurationTicks, gustShiftDeg, gustStrengthMult, gameTick, "Stabilna pogoda");
+	}
 
 	public static final StreamCodec<RegistryFriendlyByteBuf, WindSyncPayload> CODEC = new StreamCodec<>() {
 		@Override
@@ -33,7 +49,8 @@ public record WindSyncPayload(
 				buf.readInt(),
 				buf.readFloat(),
 				buf.readFloat(),
-				buf.readLong()
+				buf.readLong(),
+				buf.readUtf()
 			);
 		}
 
@@ -49,6 +66,7 @@ public record WindSyncPayload(
 			buf.writeFloat(p.gustShiftDeg);
 			buf.writeFloat(p.gustStrengthMult);
 			buf.writeLong(p.gameTick);
+			buf.writeUtf(p.forecast);
 		}
 	};
 

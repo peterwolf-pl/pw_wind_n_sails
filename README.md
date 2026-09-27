@@ -40,16 +40,22 @@ A realistic, immersive, yet deeply playable wind and sailing mod for Minecraft 2
 | **D** | Steer Starboard (Prawo) | Turns rudder to starboard; automatically returns to center when released |
 | **W** | Pull In Mainsheet | Tightens sheet, pulls boom closer to centerline for sailing upwind / close-hauled |
 | **S** | Ease Mainsheet | Loosens sheet, lets boom swing out to leeward for reach and downwind courses |
+| **X** | Furl / Unfurl Sail | Toggles sail furling (can also right-click the mast) |
+| **Space** | Balance / Hike (Siedź) | Sit on windward gunwale to right the boat (Space again returns to center) |
+| **Space x2** | Stand on Gunwale (Stój) | Quick double tap: stand upright on windward gunwale for maximum righting in heavy wind |
+| **H** | Toggle Wind HUD | Shows compact single-line wind telemetry, gusts, and weather forecast |
 | **TAB** (Tap) | Toggle Wind Hints | Toggles lightweight wind direction arrows and gusts over water |
 | **Shift** (Sneak) | Dismount | Leaves the helm and steps ashore |
 
-### Commands (Live Sensitivity Tuning)
+### Commands (Live Sensitivity & Wind Tuning)
 
+- `/windsails wind` — Show current wind direction, speed in knots, active gusts, and forecast
+- `/windsails wind set <strength> [direction]` — Set wind speed and direction (e.g. `0.0` for flauta)
 - `/windsails rudder sensitivity` — Check current rudder sensitivity (default: 1.0)
 - `/windsails rudder sensitivity <0.1 - 5.0>` — Set rudder turning sensitivity in real-time without restart
 - `/windsails rudder autocenter <rate>` — Set auto-center return speed (degrees/tick, default: 2.5)
 - `/windsails rudder turnrate <rate>` — Set steering rate when A/D is held (degrees/tick, default: 2.0)
-- `/windsails status` — Display all current sailing settings
+- `/windsails status` — Display all current sailing and wind telemetry settings
 *(Aliases `/windsails` and `/sailing`)*
 
 ### Sailing Tips

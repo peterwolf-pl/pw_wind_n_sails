@@ -45,13 +45,19 @@ public final class SailboatHudOverlay implements HudElement {
 		WindVector wind = WindManager.getInstance().getWind(boat.level(), boat.position());
 		float appWindX = (float) (wind.x() - motion.x);
 		float appWindZ = (float) (wind.z() - motion.z);
+		float appWindSpeed = (float) Math.sqrt(appWindX * appWindX + appWindZ * appWindZ);
 		float appWindTowardsDeg = (float) (Mth.atan2(-appWindX, appWindZ) * Mth.RAD_TO_DEG);
-		float appWindFromDeg = appWindTowardsDeg + 180.0F;
+		float appWindFromDeg = (appWindSpeed > 1e-4F) ? (appWindTowardsDeg + 180.0F) : (wind.directionDeg() + 180.0F);
 		float relWindDeg = Math.abs(Mth.wrapDegrees(appWindFromDeg - boat.getYRot()));
+
+		boolean isFlauta = wind.strength() < 0.06F;
 
 		String pointOfSail;
 		int colorPointOfSail;
-		if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
+		if (isFlauta && horizontalSpeed < 0.05) {
+			pointOfSail = "FLAUTA (Cisza na wodzie)";
+			colorPointOfSail = 0xFFAAAAAA; // Gray
+		} else if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
 			pointOfSail = "IN IRONS (Head to Wind)";
 			colorPointOfSail = 0xFFFF5555; // Red
 		} else if (relWindDeg < 65.0F) {
@@ -87,11 +93,20 @@ public final class SailboatHudOverlay implements HudElement {
 		if (boat.isSailFurled()) {
 			trimHint = "Żagiel ZWINIĘTY [X / PPM maszt - rozwiń]";
 			colorTrim = 0xFF55FFFF; // Cyan
+		} else if (isFlauta) {
+			trimHint = "Flauta (Brak ciągu wiatru)";
+			colorTrim = 0xFFAAAAAA;
 		} else if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
 			trimHint = "IN IRONS (Kąt martwy)";
 			colorTrim = 0xFFFF5555; // Red
-		} else if (Math.abs(boat.getHeelAngle()) > 24.0F) {
-			trimHint = "PRZECHYŁ! Odpuść szot (S) / Ostrz (A/D)";
+		} else if (Math.abs(boat.getHeelAngle()) > 20.0F) {
+			if (boat.isHikeStanding()) {
+				trimHint = "PRZECHYŁ! Odpuść szot (S) / Ostrz (A/D)";
+			} else if (boat.isHikeSitting()) {
+				trimHint = "PRZECHYŁ! Wstań na burcie [Spacja x2] / Odpuść szot (S)";
+			} else {
+				trimHint = "PRZECHYŁ! Balastuj (Spacja) / Odpuść szot (S)";
+			}
 			colorTrim = 0xFFFF3333; // Bright Red
 		} else if (aoa <= 1.0F && relWindDeg <= 90.0F) {
 			trimHint = "Żagiel w łopocie (Wybieraj W)";
@@ -110,15 +125,23 @@ public final class SailboatHudOverlay implements HudElement {
 		float rudder = boat.getRudderAngle();
 		String rudderStr = Math.abs(rudder) < 1.0F ? "Środek" : rudder < 0 ? String.format("Bakburta %.0f°", -rudder) : String.format("Sterburta %.0f°", rudder);
 		String sailStatus = boat.isSailFurled() ? "ZWINIĘTY [X]" : String.format("%d%% %s", sheetPct, barStr);
-		String sheetText = String.format("Szot: %s (W/S)  |  Ster: %s (A/D)", sailStatus, rudderStr);
+		String hikeStatus;
+		if (boat.isHikeStanding()) {
+			hikeStatus = "§6Balast: Stoi na burcie§r";
+		} else if (boat.isHikeSitting()) {
+			hikeStatus = "§aBalast: Siedzi na burcie§r";
+		} else {
+			hikeStatus = "§7Balast: Środek [Spacja]§r";
+		}
+		String sheetText = String.format("Szot: %s  |  Ster: %s  |  %s", sailStatus, rudderStr, hikeStatus);
 		String speedText = String.format("%.1f kn  |  %s  |  %s", speedKnots, pointOfSail, trimHint);
 
 		int hudX = width / 2;
 		int hudY = height - 68;
 
 		// Translucent dark background box
-		extractor.fill(hudX - 145, hudY - 4, hudX + 145, hudY + 22, 0x90000000);
-		extractor.outline(hudX - 145, hudY - 4, 290, 26, 0x40FFFFFF);
+		extractor.fill(hudX - 165, hudY - 4, hudX + 165, hudY + 22, 0x90000000);
+		extractor.outline(hudX - 165, hudY - 4, 330, 26, 0x40FFFFFF);
 
 		extractor.centeredText(font, Component.literal(sheetText), hudX, hudY, 0xFFFFFFFF);
 		extractor.centeredText(font, Component.literal(speedText), hudX, hudY + 11, colorTrim);

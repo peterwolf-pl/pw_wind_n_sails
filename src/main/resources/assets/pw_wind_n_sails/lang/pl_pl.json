@@ -1,0 +1,15 @@
+{
+  "itemGroup.pw_wind_n_sails.group": "Peterwolf's Wind & Sails",
+  "entity.pw_wind_n_sails.sailboat": "Żaglówka",
+  "item.pw_wind_n_sails.sailboat": "Żaglówka",
+  "item.pw_wind_n_sails.sailboat.desc": "Jednomasztowa łódź żaglowa sterowana myszą i sterem A/D, z wybieraniem szota W/S.",
+  "block.pw_wind_n_sails.flagpole": "Maszt flagowy",
+  "item.pw_wind_n_sails.flagpole": "Maszt flagowy",
+  "item.pw_wind_n_sails.flagpole.desc": "7-blokowy maszt z banderą wskazującą kierunek i siłę wiatru.",
+  "key.categories.pw_wind_n_sails": "Peterwolf's Wind & Sails",
+  "key.pw_wind_n_sails.toggle_wind": "Przełącz wskaźniki wiatru (TAB)",
+  "key.pw_wind_n_sails.toggle_sail": "Zwiń / Rozwiń żagiel (X)",
+  "key.pw_wind_n_sails.toggle_wind_hud": "Przełącz HUD wiatru (H)",
+  "message.pw_wind_n_sails.wind_hints_on": "Wskaźniki wiatru: WŁĄCZONE",
+  "message.pw_wind_n_sails.wind_hints_off": "Wskaźniki wiatru: WYŁĄCZONE"
+}

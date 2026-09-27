@@ -35,7 +35,13 @@ public final class WindManager {
 		if (level.isClientSide()) {
 			return this.clientState;
 		}
-		return this.serverStates.computeIfAbsent(level.dimension(), dim -> WindState.createDefault());
+		return this.serverStates.computeIfAbsent(level.dimension(), dim -> {
+			WindState state = WindState.createDefault();
+			if (level instanceof ServerLevel sl) {
+				state.setSeed(sl.getSeed() ^ (long) dim.identifier().hashCode());
+			}
+			return state;
+		});
 	}
 
 	public WindVector getWind(Level level, Vec3 pos) {
@@ -49,17 +55,21 @@ public final class WindManager {
 
 	public void tickServer(ServerLevel level) {
 		long tick = level.getGameTime();
+		long dayTime = level.getDefaultClockTime();
 		WindState state = this.getWindState(level);
+		if (!state.hasWorldSeed()) {
+			state.setSeed(level.getSeed() ^ (long) level.dimension().identifier().hashCode());
+		}
 		WindGust beforeGust = state.getCurrentGust();
 
-		state.tickServer(tick, level.getRandom());
+		state.tickServer(tick, dayTime, level.getRandom());
 
 		WindGust afterGust = state.getCurrentGust();
 		boolean gustChanged = (beforeGust != afterGust);
 
 		// Synchronize periodically every 20 ticks (1 sec) or immediately when a gust starts/ends
 		if (tick % 20 == 0 || gustChanged) {
-			WindSyncPayload payload = createPayload(state, tick);
+			WindSyncPayload payload = createPayload(state, tick, dayTime);
 			for (ServerPlayer player : PlayerLookup.level(level)) {
 				ServerPlayNetworking.send(player, payload);
 			}
@@ -69,13 +79,15 @@ public final class WindManager {
 	public void syncToPlayer(ServerPlayer player) {
 		ServerLevel level = player.level();
 		long tick = level.getGameTime();
+		long dayTime = level.getDefaultClockTime();
 		WindState state = this.getWindState(level);
-		ServerPlayNetworking.send(player, createPayload(state, tick));
+		ServerPlayNetworking.send(player, createPayload(state, tick, dayTime));
 	}
 
 	public void applyClientSync(WindSyncPayload payload) {
 		this.clientState.setTarget(payload.targetDirection(), payload.targetStrength());
 		this.clientState.setBase(payload.baseDirection(), payload.baseStrength());
+		this.clientState.setForecast(payload.forecast());
 
 		if (payload.gustActive()) {
 			this.clientState.setCurrentGust(new WindGust(
@@ -93,9 +105,15 @@ public final class WindManager {
 		this.clientState.tickClient(gameTime);
 	}
 
-	private static WindSyncPayload createPayload(WindState state, long currentTick) {
+	private static WindSyncPayload createPayload(WindState state, long currentTick, long dayTime) {
 		WindGust gust = state.getCurrentGust();
 		boolean gustActive = gust != null && !gust.isExpired(currentTick);
+		DailyWindProfile pCurrent = state.getCurrentDayProfile();
+		DailyWindProfile pNext = state.getNextDayProfile();
+		String forecast = (pCurrent != null && pNext != null)
+			? DailyWindProfile.generateForecast(dayTime, pCurrent, pNext)
+			: "Stabilna pogoda";
+
 		return new WindSyncPayload(
 			state.getBaseDirectionDeg(),
 			state.getBaseStrength(),
@@ -106,7 +124,8 @@ public final class WindManager {
 			gustActive ? gust.getDurationTicks() : 0,
 			gustActive ? gust.getDirectionShiftDeg() : 0.0F,
 			gustActive ? gust.getStrengthMultiplier() : 1.0F,
-			currentTick
+			currentTick,
+			forecast
 		);
 	}
 }

@@ -53,7 +53,15 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		KeyMapping.Category.GAMEPLAY
 	);
 
+	public static final KeyMapping KEY_TOGGLE_WIND_HUD = new KeyMapping(
+		"key.pw_wind_n_sails.toggle_wind_hud",
+		InputConstants.Type.KEYBOARD,
+		InputConstants.KEY_H,
+		KeyMapping.Category.GAMEPLAY
+	);
+
 	private static int tabPressTicks = 0;
+	private static int spaceTapTimer = 0;
 
 	@Override
 	public void onInitializeClient() {
@@ -69,9 +77,11 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		// Keybind
 		KeyMappingHelper.registerKeyMapping(KEY_TOGGLE_WIND);
 		KeyMappingHelper.registerKeyMapping(KEY_TOGGLE_SAIL);
+		KeyMappingHelper.registerKeyMapping(KEY_TOGGLE_WIND_HUD);
 
 		// HUD & Visualizer
 		HudElementRegistry.addLast(WindAndSailsMod.id("sailboat_hud"), SailboatHudOverlay.INSTANCE);
+		HudElementRegistry.addLast(WindAndSailsMod.id("wind_telemetry_hud"), WindHudOverlay.INSTANCE);
 		LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(WindVisualizerRenderer::render);
 
 		// Network Receivers
@@ -83,6 +93,20 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.level != null) {
 				WindManager.getInstance().tickClient(client.level.getGameTime());
+			}
+
+			if (spaceTapTimer > 0) {
+				spaceTapTimer--;
+			}
+
+			// Key H: Toggle single-line Wind HUD (when not operating a plane or paragliding)
+			while (KEY_TOGGLE_WIND_HUD.consumeClick()) {
+				if (client.player != null && !PlaneCompatHelper.isPlayerInPlaneOrParagliding(client.player)) {
+					WindHudOverlay.toggle();
+					client.player.sendOverlayMessage(
+						Component.literal(WindHudOverlay.isVisible() ? "§b[Wiatr]§r HUD włączony" : "§7[Wiatr]§r HUD wyłączony")
+					);
+				}
 			}
 
 			// Short-press TAB toggles wind visualization hints while preserving player list on hold
@@ -127,7 +151,38 @@ public final class WindAndSailsClient implements ClientModInitializer {
 					toggleSail = true;
 				}
 
-				ClientPlayNetworking.send(new SailboatInputPayload(boat.getId(), rudderInput, sheetInput, toggleSail));
+				// Space toggles hiking: single tap = sit on windward gunwale, double tap (quick) = stand on gunwale
+				int targetHikeMode = -1;
+				while (client.options.keyJump.consumeClick()) {
+					int currentMode = boat.getHikeMode();
+					if (spaceTapTimer > 0) {
+						// Double space tap detected: Stand on the gunwale!
+						targetHikeMode = SailboatEntity.HIKE_STAND;
+						spaceTapTimer = 0;
+						boat.setHikeMode(SailboatEntity.HIKE_STAND);
+						client.player.sendOverlayMessage(
+							Component.literal("§6Balastowanie: Stanie na burcie [Maksymalne]§r")
+						);
+					} else {
+						// Single space tap:
+						spaceTapTimer = 8; // ~400ms window for double tap
+						if (currentMode == SailboatEntity.HIKE_NONE) {
+							targetHikeMode = SailboatEntity.HIKE_SIT;
+							boat.setHikeMode(SailboatEntity.HIKE_SIT);
+							client.player.sendOverlayMessage(
+								Component.literal("§aBalastowanie: Siedzenie na burcie nawietrznej§r")
+							);
+						} else {
+							targetHikeMode = SailboatEntity.HIKE_NONE;
+							boat.setHikeMode(SailboatEntity.HIKE_NONE);
+							client.player.sendOverlayMessage(
+								Component.literal("§7Balastowanie: Środek łódki§r")
+							);
+						}
+					}
+				}
+
+				ClientPlayNetworking.send(new SailboatInputPayload(boat.getId(), rudderInput, sheetInput, toggleSail, targetHikeMode));
 
 				// Spawn subtle water wake particles when boat is moving
 				Vec3 vel = boat.getDeltaMovement();

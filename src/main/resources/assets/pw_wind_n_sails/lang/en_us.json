@@ -9,6 +9,7 @@
   "key.categories.pw_wind_n_sails": "Peterwolf's Wind & Sails",
   "key.pw_wind_n_sails.toggle_wind": "Toggle Wind Hints (TAB)",
   "key.pw_wind_n_sails.toggle_sail": "Furl / Unfurl Sail (X)",
+  "key.pw_wind_n_sails.toggle_wind_hud": "Toggle Wind HUD (H)",
   "message.pw_wind_n_sails.wind_hints_on": "Wind hints: ON (Look at water for wind streaks)",
   "message.pw_wind_n_sails.wind_hints_off": "Wind hints: OFF"
 }

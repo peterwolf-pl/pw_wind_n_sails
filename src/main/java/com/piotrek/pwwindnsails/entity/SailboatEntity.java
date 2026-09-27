@@ -39,11 +39,16 @@ import org.jetbrains.annotations.Nullable;
  * Controlled by rudder (A/D) and mainsail sheet (W/S). Server-authoritative physics.
  */
 public class SailboatEntity extends Entity {
+	public static final int HIKE_NONE = 0;
+	public static final int HIKE_SIT = 1;
+	public static final int HIKE_STAND = 2;
+
 	private static final EntityDataAccessor<Float> RUDDER_ANGLE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> MAINSHEET = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> BOOM_ANGLE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> HEEL_ANGLE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> HIKE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
+	private static final EntityDataAccessor<Byte> HIKE_MODE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.BYTE);
 	private static final EntityDataAccessor<Boolean> SAIL_FURLED = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Integer> HURT_TIME = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Float> DAMAGE = SynchedEntityData.defineId(SailboatEntity.class, EntityDataSerializers.FLOAT);
@@ -79,6 +84,7 @@ public class SailboatEntity extends Entity {
 		builder.define(BOOM_ANGLE, 0.0F);
 		builder.define(HEEL_ANGLE, 0.0F);
 		builder.define(HIKE, 0.0F);
+		builder.define(HIKE_MODE, (byte) HIKE_NONE);
 		builder.define(SAIL_FURLED, false);
 		builder.define(HURT_TIME, 0);
 		builder.define(DAMAGE, 0.0F);
@@ -91,6 +97,7 @@ public class SailboatEntity extends Entity {
 		this.setBoomAngle(input.getFloatOr("BoomAngle", 0.0F));
 		this.setHeelAngle(input.getFloatOr("HeelAngle", 0.0F));
 		this.setHike(input.getFloatOr("Hike", 0.0F));
+		this.setHikeMode(input.getByteOr("HikeMode", (byte) HIKE_NONE));
 		this.setSailFurled(input.getBooleanOr("SailFurled", false));
 		this.setDamage(input.getFloatOr("Damage", 0.0F));
 	}
@@ -102,6 +109,7 @@ public class SailboatEntity extends Entity {
 		output.putFloat("BoomAngle", this.getBoomAngle());
 		output.putFloat("HeelAngle", this.getHeelAngle());
 		output.putFloat("Hike", this.getHike());
+		output.putByte("HikeMode", (byte) this.getHikeMode());
 		output.putBoolean("SailFurled", this.isSailFurled());
 		output.putFloat("Damage", this.getDamage());
 	}
@@ -182,6 +190,17 @@ public class SailboatEntity extends Entity {
 			} else {
 				this.visualRudderAngle = Mth.lerp(0.25F, this.visualRudderAngle, this.getRudderAngle());
 			}
+
+			// Smooth client prediction for hiking
+			if (this.isHiking()) {
+				WindVector clientWind = WindManager.getInstance().getClientState().getWindVector(this.level().getGameTime());
+				float appFrom = clientWind.directionDeg() + 180.0F;
+				float relW = Mth.wrapDegrees(appFrom - this.getYRot());
+				float targetH = relW >= 0 ? 1.0F : -1.0F;
+				this.setHike(Mth.lerp(0.35F, this.getHike(), targetH));
+			} else if (Math.abs(this.getHike()) > 0.01F) {
+				this.setHike(Mth.lerp(0.35F, this.getHike(), 0.0F));
+			}
 			return;
 		}
 
@@ -260,6 +279,20 @@ public class SailboatEntity extends Entity {
 		WindVector trueWind = WindManager.getInstance().getWind(this.level(), this.position());
 		Vec3 velWithY = new Vec3(currentVel.x, yVel, currentVel.z);
 
+		// Determine windward side for hiking: +1.0 = starboard, -1.0 = port
+		float appWindFromDeg = trueWind.directionDeg() + 180.0F;
+		float relWindDeg = Mth.wrapDegrees(appWindFromDeg - this.getYRot());
+		float windwardSide = relWindDeg >= 0 ? 1.0F : -1.0F;
+
+		int mode = this.getHikeMode();
+		float targetHike = (mode > 0) ? windwardSide : 0.0F;
+		float currentHike = this.getHike();
+		float newHike = Mth.lerp(0.35F, currentHike, targetHike);
+		if (Math.abs(newHike - targetHike) < 0.02F) {
+			newHike = targetHike;
+		}
+		this.setHike(newHike);
+
 		SailingPhysics.PhysicsResult physics = SailingPhysics.step(
 			velWithY,
 			this.getYRot(),
@@ -269,7 +302,8 @@ public class SailboatEntity extends Entity {
 			trueWind,
 			this.getHeelAngle(),
 			this.isSailFurled(),
-			inWater
+			inWater,
+			mode
 		);
 
 		this.yawVelocity = physics.newYawVelocity();
@@ -329,11 +363,32 @@ public class SailboatEntity extends Entity {
 
 	@Override
 	protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
-		// Passenger sits on the aft bench, above the dry cockpit sole
+		// Passenger sits on the aft bench along centerline, sits on gunwale (mode 1), or stands on gunwale (mode 2)
 		float yawRad = this.getYRot() * Mth.DEG_TO_RAD;
 		double xOffset = -Mth.sin(yawRad) * (-0.70);
 		double zOffset = Mth.cos(yawRad) * (-0.70);
-		return new Vec3(xOffset, 0.42, zOffset);
+
+		float hike = this.getHike();
+		int mode = this.getHikeMode();
+
+		double baseLateral = (mode >= HIKE_STAND) ? 0.68 : 0.58;
+		double lateralDist = baseLateral * hike;
+		double lateralX = -Mth.cos(yawRad) * lateralDist;
+		double lateralZ = -Mth.sin(yawRad) * lateralDist;
+
+		double baseY = (mode >= HIKE_STAND) ? 0.88 : (mode == HIKE_SIT ? 0.45 : 0.42);
+		double yOffset = baseY + Math.abs(hike) * (mode >= HIKE_STAND ? 0.04 : 0.02);
+
+		return new Vec3(xOffset + lateralX, yOffset, zOffset + lateralZ);
+	}
+
+	@Override
+	protected void removePassenger(Entity passenger) {
+		super.removePassenger(passenger);
+		if (this.getPassengers().isEmpty()) {
+			this.setHikeMode(HIKE_NONE);
+			this.setHike(0.0F);
+		}
 	}
 
 	@Override
@@ -401,6 +456,13 @@ public class SailboatEntity extends Entity {
 
 	public float getHike() { return this.entityData.get(HIKE); }
 	public void setHike(float hike) { this.entityData.set(HIKE, hike); }
+
+	public int getHikeMode() { return this.entityData.get(HIKE_MODE); }
+	public void setHikeMode(int mode) { this.entityData.set(HIKE_MODE, (byte) Mth.clamp(mode, 0, 2)); }
+
+	public boolean isHiking() { return this.getHikeMode() > HIKE_NONE; }
+	public boolean isHikeSitting() { return this.getHikeMode() == HIKE_SIT; }
+	public boolean isHikeStanding() { return this.getHikeMode() == HIKE_STAND; }
 
 	public float getVisualBoomAngle(float partialTick) {
 		return Mth.lerp(partialTick, this.visualBoomAngleO, this.visualBoomAngle);

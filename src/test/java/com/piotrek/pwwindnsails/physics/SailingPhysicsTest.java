@@ -111,4 +111,93 @@ public class SailingPhysicsTest {
 		double speed = Math.sqrt(tacking.newVelocity().x * tacking.newVelocity().x + tacking.newVelocity().z * tacking.newVelocity().z);
 		assertTrue(speed > 0.2, "Boat must carry momentum through the tack rather than stopping dead");
 	}
+
+	@Test
+	public void testBoatSpeedScalingWithWindStrengthAndFlautaCalm() {
+		// 1. In flauta calm (< 0.06), boat must not sail / accelerate forward
+		WindVector flauta = new WindVector(270.0F, 0.03F); // West wind blowing East
+		Vec3 rest = Vec3.ZERO;
+		SailingPhysics.PhysicsResult flautaResult = SailingPhysics.step(
+			rest, 0.0F, 0.0F, 0.0F, 0.5F, flauta, 0.0F, true
+		);
+		double flautaSpeed = Math.sqrt(flautaResult.newVelocity().x * flautaResult.newVelocity().x + flautaResult.newVelocity().z * flautaResult.newVelocity().z);
+		assertEquals(0.0, flautaSpeed, 1e-4, "Boat must not move forward in flauta");
+
+		// 2. Simulate 60 ticks of beam reach sailing under different wind speeds:
+		// Light wind (0.20), Moderate wind (0.50), Strong wind (0.85)
+		double speedLight = simulateBeamReachSpeed(0.20F, 60);
+		double speedModerate = simulateBeamReachSpeed(0.50F, 60);
+		double speedStrong = simulateBeamReachSpeed(0.85F, 60);
+
+		assertTrue(speedLight > 0.05, "Boat must make headway in light wind: " + speedLight);
+		assertTrue(speedModerate > speedLight * 1.4, "Boat must sail substantially faster in moderate wind: " + speedModerate + " vs " + speedLight);
+		assertTrue(speedStrong > speedModerate * 1.2, "Boat must sail faster in strong wind: " + speedStrong + " vs " + speedModerate);
+	}
+
+	private double simulateBeamReachSpeed(float windStrength, int ticks) {
+		WindVector wind = new WindVector(270.0F, windStrength);
+		Vec3 vel = new Vec3(0, 0, 0.05); // slight initial headway
+		for (int i = 0; i < ticks; i++) {
+			SailingPhysics.PhysicsResult res = SailingPhysics.step(
+				vel, 0.0F, 0.0F, 0.0F, 0.45F, wind, 0.0F, true
+			);
+			vel = res.newVelocity();
+		}
+		return Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+	}
+
+	@Test
+	public void testHeelDirectionOppositeToWind() {
+		// Boat heading South (yaw 0).
+		// Wind from West (90 deg, blows towards East 270 deg) -> Wind is on STARBOARD side
+		WindVector windFromWest = new WindVector(270.0F, 0.70F);
+		Vec3 headway = new Vec3(0, 0, 0.20);
+
+		SailingPhysics.PhysicsResult resStarboardWind = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.45F, windFromWest, 0.0F, false, true, false
+		);
+
+		// Wind on starboard must push boat/sail to port (leeward heel)
+		assertTrue(resStarboardWind.heelAngleDeg() > 0.0F, "Boat must heel to leeward (positive roll away from starboard wind)");
+
+		// Wind from East (270 deg, blows towards West 90 deg) -> Wind is on PORT side
+		WindVector windFromEast = new WindVector(90.0F, 0.70F);
+		SailingPhysics.PhysicsResult resPortWind = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.45F, windFromEast, 0.0F, false, true, false
+		);
+
+		assertTrue(resPortWind.heelAngleDeg() < 0.0F, "Boat must heel to leeward (negative roll away from port wind)");
+	}
+
+	@Test
+	public void testHikingBalancesBoatInStrongWind() {
+		// Strong beam reach wind
+		WindVector strongWind = new WindVector(270.0F, 0.75F);
+		Vec3 headway = new Vec3(0, 0, 0.25);
+
+		// 1. Without hiking (sailor in center)
+		SailingPhysics.PhysicsResult unhiked = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.45F, strongWind, 0.0F, false, true, 0
+		);
+
+		// 2. Sitting on windward gunwale (mode 1)
+		SailingPhysics.PhysicsResult satOnGunwale = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.45F, strongWind, 0.0F, false, true, 1
+		);
+
+		// 3. Standing on windward gunwale (mode 2, double space tap)
+		SailingPhysics.PhysicsResult stoodOnGunwale = SailingPhysics.step(
+			headway, 0.0F, 0.0F, 0.0F, 0.45F, strongWind, 0.0F, false, true, 2
+		);
+
+		// Sitting on the gunwale largely rights the boat (reduces heel by ~80%)
+		assertTrue(Math.abs(satOnGunwale.heelAngleDeg()) < Math.abs(unhiked.heelAngleDeg()) * 0.25F,
+			"Sitting on gunwale must largely right the boat: " + satOnGunwale.heelAngleDeg() + " vs " + unhiked.heelAngleDeg());
+
+		// Standing on the gunwale provides even more righting leverage, virtually flattening the boat
+		assertTrue(Math.abs(stoodOnGunwale.heelAngleDeg()) <= Math.abs(satOnGunwale.heelAngleDeg()),
+			"Standing on gunwale must provide maximum righting moment");
+		assertTrue(Math.abs(stoodOnGunwale.heelAngleDeg()) < 2.0F,
+			"Standing on gunwale must keep boat practically level even in strong wind: " + stoodOnGunwale.heelAngleDeg());
+	}
 }

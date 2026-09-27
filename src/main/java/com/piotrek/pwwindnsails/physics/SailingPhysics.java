@@ -38,12 +38,9 @@ public final class SailingPhysics {
 		float currentHeelDeg,
 		boolean inWater
 	) {
-		return step(currentVelocity, currentYaw, yawVelocity, rudderAngleDeg, mainsheet, trueWind, currentHeelDeg, false, inWater);
+		return step(currentVelocity, currentYaw, yawVelocity, rudderAngleDeg, mainsheet, trueWind, currentHeelDeg, false, inWater, false);
 	}
 
-	/**
-	 * Computes one physics tick for a sailboat.
-	 */
 	public static PhysicsResult step(
 		Vec3 currentVelocity,
 		float currentYaw,
@@ -54,6 +51,41 @@ public final class SailingPhysics {
 		float currentHeelDeg,
 		boolean sailFurled,
 		boolean inWater
+	) {
+		return step(currentVelocity, currentYaw, yawVelocity, rudderAngleDeg, mainsheet, trueWind, currentHeelDeg, sailFurled, inWater, false);
+	}
+
+	public static PhysicsResult step(
+		Vec3 currentVelocity,
+		float currentYaw,
+		float yawVelocity,
+		float rudderAngleDeg,
+		float mainsheet,
+		WindVector trueWind,
+		float currentHeelDeg,
+		boolean sailFurled,
+		boolean inWater,
+		boolean hiking
+	) {
+		return step(currentVelocity, currentYaw, yawVelocity, rudderAngleDeg, mainsheet, trueWind, currentHeelDeg, sailFurled, inWater, hiking ? 1 : 0);
+	}
+
+	/**
+	 * Computes one physics tick for a sailboat.
+	 *
+	 * @param hikeMode 0 = center seat, 1 = sitting on windward gunwale, 2 = standing on windward gunwale
+	 */
+	public static PhysicsResult step(
+		Vec3 currentVelocity,
+		float currentYaw,
+		float yawVelocity,
+		float rudderAngleDeg,
+		float mainsheet,
+		WindVector trueWind,
+		float currentHeelDeg,
+		boolean sailFurled,
+		boolean inWater,
+		int hikeMode
 	) {
 		if (!inWater) {
 			// In air or on land: apply gravity and ground friction
@@ -96,7 +128,7 @@ public final class SailingPhysics {
 		// Apparent wind direction (direction wind blows towards)
 		float appWindTowardsDeg = (float) (Mth.atan2(-appWindX, appWindZ) * Mth.RAD_TO_DEG);
 		// Direction FROM which wind blows
-		float appWindFromDeg = WindAndSailsConfig.PREVAILING_WIND_DIR;
+		float appWindFromDeg = trueWind.directionDeg() + 180.0F;
 		if (appWindSpeed > 1e-4F) {
 			appWindFromDeg = appWindTowardsDeg + 180.0F;
 		}
@@ -129,12 +161,17 @@ public final class SailingPhysics {
 		double forwardThrust = 0.0;
 		double lateralAeroForce = 0.0;
 
-		if (sailFurled) {
-			// Sail is furled: zero aerodynamic thrust and zero heeling force, boom centered
+		boolean isFlauta = trueWind.strength() < 0.06F;
+
+		if (sailFurled || isFlauta) {
+			// Sail is furled or in flauta calm: zero aerodynamic thrust and zero heeling force
 			boomAngleDeg = 0.0F;
 		} else if (appWindSpeed > 1e-3F) {
-			// Dynamic aerodynamic pressure
-			double dynamicPressure = 0.5 * 1.225 * appWindSpeed * appWindSpeed * WindAndSailsConfig.SAIL_AREA * WindAndSailsConfig.SAIL_FORCE_SCALE;
+			// Dynamic aerodynamic pressure scaling directly with wind strength
+			float windEngagement = Mth.clamp((trueWind.strength() - 0.06F) / 0.65F, 0.0F, 1.8F);
+			double dynamicPressure = 0.5 * 1.225 * appWindSpeed * appWindSpeed
+				* WindAndSailsConfig.SAIL_AREA * WindAndSailsConfig.SAIL_FORCE_SCALE
+				* windEngagement;
 
 			if (inIrons) {
 				// In irons: sail luffs (flaps along centerline), producing zero forward lift
@@ -184,11 +221,21 @@ public final class SailingPhysics {
 		double linearDrag = WindAndSailsConfig.WATER_LINEAR_DRAG * forwardSpeed;
 		double quadDrag = WindAndSailsConfig.WATER_QUAD_DRAG * forwardSpeed * Math.abs(forwardSpeed);
 
+		// Wave-making hull resistance: steep non-linear drag scaling boat speed with wind strength
+		double maxWindSpeed = Math.max(0.08, trueWind.strength() * 0.85);
+		double speedRatio = Math.max(0.0, forwardSpeed / maxWindSpeed);
+		double hullDrag = 0.025 * Math.pow(speedRatio, 3.5);
+
 		// Rudder induced drag (turning rudder slows the boat slightly)
 		float rudderRad = rudderAngleDeg * Mth.DEG_TO_RAD;
 		double rudderDrag = WindAndSailsConfig.rudderDragCoeff * Math.abs(Mth.sin(rudderRad)) * Math.abs(forwardSpeed);
 
-		vForward += forwardThrust - (linearDrag + quadDrag + rudderDrag);
+		vForward += forwardThrust - (linearDrag + quadDrag + hullDrag + rudderDrag);
+
+		// At rest in flauta or irons, eliminate any creeping micro-drift
+		if (isFlauta || (forwardThrust <= 0.0 && Math.abs(vForward) < 0.003)) {
+			vForward = Math.abs(vForward) < 0.003 ? 0.0 : vForward * 0.90;
+		}
 
 		// 7. Rudder torque (turning)
 		// Torque is proportional to water speed over rudder: at 0 speed, rudder has almost no authority!
@@ -215,8 +262,16 @@ public final class SailingPhysics {
 		double newRightZ = Mth.sin(newYawRad);
 
 		// 9. Heel (roll) angle
-		// Lateral force from the sail heels the boat to leeward
-		double targetHeel = -lateralAeroForce * WindAndSailsConfig.HEEL_SENSITIVITY;
+		// Lateral force from the sail heels the boat to leeward (away from wind)
+		double targetHeel = lateralAeroForce * WindAndSailsConfig.HEEL_SENSITIVITY;
+
+		// Sailor hiking counter-moment: sitting or standing on the windward gunwale counters heel!
+		if (hikeMode > 0) {
+			double rightingRatio = (hikeMode >= 2) ? 0.95 : 0.82;
+			double maxRightingDeg = (hikeMode >= 2) ? 30.0 : 22.0;
+			double rightingMoment = Math.signum(targetHeel) * Math.min(Math.abs(targetHeel) * rightingRatio, maxRightingDeg);
+			targetHeel -= rightingMoment;
+		}
 
 		// If boat heels steeply (> 26 deg), the sail is angled away from vertical and spills wind
 		if (Math.abs(targetHeel) > 26.0) {
