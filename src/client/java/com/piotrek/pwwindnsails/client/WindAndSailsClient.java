@@ -109,19 +109,17 @@ public final class WindAndSailsClient implements ClientModInitializer {
 				}
 			}
 
-			// Short-press TAB toggles wind visualization hints while preserving player list on hold
+			// Short-press TAB cycles wind visualizer styles while preserving player list on hold
 			if (KEY_TOGGLE_WIND.isDown()) {
 				tabPressTicks++;
 			} else {
 				if (tabPressTicks > 0 && tabPressTicks < 6) {
-					WindVisualizerRenderer.toggle();
+					WindVisualizerRenderer.VisualizerMode mode = WindVisualizerRenderer.cycleMode();
 					if (client.player != null) {
 						client.player.sendOverlayMessage(
-							Component.translatable(
-								WindVisualizerRenderer.isEnabled()
-									? "message.pw_wind_n_sails.wind_hints_on"
-									: "message.pw_wind_n_sails.wind_hints_off"
-							)
+							Component.literal(mode.isEnabled()
+								? "§b[Wskaźnik wiatru TAB]§r " + mode.getDisplayName()
+								: "§7[Wskaźnik wiatru TAB]§r " + mode.getDisplayName())
 						);
 					}
 				}

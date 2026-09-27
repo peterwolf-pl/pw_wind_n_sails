@@ -1,5 +1,6 @@
 package com.piotrek.pwwindnsails.wind;
 
+import com.piotrek.pwwindnsails.client.WindVisualizerRenderer;
 import com.piotrek.pwwindnsails.physics.SailingPhysics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
@@ -229,5 +230,31 @@ public class WindTest {
 		float phase1 = (float) ((h1 & 0xFFFF) / 65535.0 * 2.0 * Math.PI);
 		float phase2 = (float) ((h2 & 0xFFFF) / 65535.0 * 2.0 * Math.PI);
 		assertNotEquals(phase1, phase2, 1e-3F, "Flag phase offsets must be desynchronized");
+	}
+
+	@Test
+	public void testVisualizerModeCycling() {
+		WindVisualizerRenderer.setMode(WindVisualizerRenderer.VisualizerMode.SEAFOAM_WHITE);
+		assertTrue(WindVisualizerRenderer.isEnabled());
+
+		WindVisualizerRenderer.VisualizerMode m1 = WindVisualizerRenderer.cycleMode();
+		assertEquals(WindVisualizerRenderer.VisualizerMode.BRIGHT_CYAN, m1);
+
+		WindVisualizerRenderer.VisualizerMode m2 = WindVisualizerRenderer.cycleMode();
+		assertEquals(WindVisualizerRenderer.VisualizerMode.WARM_AMBER, m2);
+
+		WindVisualizerRenderer.VisualizerMode m3 = WindVisualizerRenderer.cycleMode();
+		assertEquals(WindVisualizerRenderer.VisualizerMode.SOFT_SKY, m3);
+
+		WindVisualizerRenderer.VisualizerMode m4 = WindVisualizerRenderer.cycleMode();
+		assertEquals(WindVisualizerRenderer.VisualizerMode.WATER_SHADOW, m4);
+
+		WindVisualizerRenderer.VisualizerMode m5 = WindVisualizerRenderer.cycleMode();
+		assertEquals(WindVisualizerRenderer.VisualizerMode.OFF, m5);
+		assertFalse(WindVisualizerRenderer.isEnabled());
+
+		WindVisualizerRenderer.VisualizerMode m0 = WindVisualizerRenderer.cycleMode();
+		assertEquals(WindVisualizerRenderer.VisualizerMode.SEAFOAM_WHITE, m0);
+		assertTrue(WindVisualizerRenderer.isEnabled());
 	}
 }

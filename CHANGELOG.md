@@ -54,11 +54,16 @@
   - `/windsails wind` – szczegółowe dane telemetryczne wiatru i prognoza pogody.
   - `/windsails wind set <siła> [kierunek]` – ustawianie parametrów wiatru przez administratorów (w tym testowej flauty `0.0`).
 
-### 🌊 Realistyczne zaciemnienie wody zamiast jaskrawych linii wiatru
-- **Naturalne smugi wiatrowe (kocie łapy)**: Zastąpiono cienkie, jaskrawe linie neonowe grubymi, aerodynamicznymi pasami zaciemnienia wody (`RenderTypes.debugQuads()`).
-- **Efekt optyczny cienia na tafli**: Pasy mają kolor głębokiej toni morskiej (ciemny granat/grafit) i subtelną przezroczystość, dzięki czemu przyciemniają powierzchnię wody pod sobą, idealnie imitując zmarszczki wiatrowe i szkwały.
-- **Grubsza, organiczna geometria**: Każda smuga ma szerokość `~0.3 – 0.4` bloku, opływowy kształt z łagodnym zakończeniem grota i miękkim zanikaniem na krawędziach zasięgu wzroku.
-- **Większa dyskrecja**: Wskaźnik wiatru nie rozprasza uwagi jaskrawymi kolorami, lecz naturalnie wtapia się w krajobraz jezior i oceanów.
+### 🌊 Wybór stylów wskaźnika wiatru na wodzie (Cykl klawiszem TAB)
+- **Cykl 5 stylów wizualnych pod klawiszem TAB**:
+  1. `1/5: Jasna piana morska (Biel)` — wyraźne, jaskrawe białe grzbiety i smugi wiatrowe (biała piana na falach), doskonale widoczne na każdej wodzie.
+  2. `2/5: Jasny błękit (Cyjan)` — świetlisty błękit nieba, dynamiczny i czytelny z daleka.
+  3. `3/5: Bursztynowy wiatr (Złoto)` — ciepłe złote smugi o wysokim kontraście względem ciemnej toni wody.
+  4. `4/5: Subtelny błękit (Łagodny)` — pastelowy, łagodny błękit nie narzucający się w polu widzenia.
+  5. `5/5: Ciemny cień wody (Grafit)` — grube pasy zaciemnienia tafli wody (kocie łapy / zmarszczki wiatrowe), idealnie imitujące cienie rzucane przez wiatr na wodę.
+  6. `Wyłączone` — całkowite wyłączenie wskaźników.
+- **Gruba, opływowa geometria**: Wszystkie style używają szerokich, aerodynamicznych pasów i grotów (`RenderTypes.debugQuads()`) o grubości `~0.32 – 0.50` bloku, leżących bezpośrednio na powierzchni wody.
+- **Komunikat wyboru**: Każde naciśnięcie TAB wyświetla na ekranie nazwę i numer wybranego stylu.
 
 ---
 

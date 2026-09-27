@@ -44,7 +44,7 @@ A realistic, immersive, yet deeply playable wind and sailing mod for Minecraft 2
 | **Space** | Balance / Hike (Siedź) | Sit on windward gunwale to right the boat (Space again returns to center) |
 | **Space x2** | Stand on Gunwale (Stój) | Quick double tap: stand upright on windward gunwale for maximum righting in heavy wind |
 | **H** | Toggle Wind HUD | Shows compact single-line wind telemetry, gusts, and weather forecast |
-| **TAB** (Tap) | Toggle Wind Hints | Toggles lightweight wind direction arrows and gusts over water |
+| **TAB** (Tap) | Cycle Wind Styles | Cycles through 5 wind visualizer styles: Seafoam White, Bright Cyan, Amber Gold, Soft Sky, Water Shadow, and OFF |
 | **Shift** (Sneak) | Dismount | Leaves the helm and steps ashore |
 
 ### Commands (Live Sensitivity & Wind Tuning)
