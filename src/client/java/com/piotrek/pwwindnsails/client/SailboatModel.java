@@ -20,6 +20,12 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 	private final ModelPart rudder;
 	private final ModelPart sailOpen;
 	private final ModelPart sailFurled;
+	private final ModelPart cleatKnot0;
+	private final ModelPart cleatKnot1;
+	private final ModelPart cleatKnot2;
+	private final ModelPart cleatKnot3;
+	private final ModelPart fendersPort;
+	private final ModelPart fendersStarboard;
 
 	public SailboatModel(ModelPart root) {
 		super(root);
@@ -28,6 +34,12 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 		this.rudder = root.getChild("rudder");
 		this.sailOpen = this.boom.getChild("sail_open");
 		this.sailFurled = this.boom.getChild("sail_furled");
+		this.cleatKnot0 = root.getChild("cleat_knot_0");
+		this.cleatKnot1 = root.getChild("cleat_knot_1");
+		this.cleatKnot2 = root.getChild("cleat_knot_2");
+		this.cleatKnot3 = root.getChild("cleat_knot_3");
+		this.fendersPort = root.getChild("fenders_port");
+		this.fendersStarboard = root.getChild("fenders_starboard");
 	}
 
 	public static LayerDefinition createBodyLayer() {
@@ -55,7 +67,20 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 			// Single Mast (extends from deck up to Y=-70, length ~60 units = 3.75 blocks)
 			.texOffs(104, 0).addBox(-1.5F, -70.0F, -12.5F, 3.0F, 62.0F, 3.0F)
 			// Mast truck / top cap
-			.texOffs(118, 0).addBox(-2.0F, -72.0F, -13.0F, 4.0F, 2.0F, 4.0F),
+			.texOffs(118, 0).addBox(-2.0F, -72.0F, -13.0F, 4.0F, 2.0F, 4.0F)
+			// --- 4 Galvanized Metal Mooring Cleats (Knagi) ---
+			// 1. Bow Port (Dziób lewa burta)
+			.texOffs(190, 8).addBox(-12.0F, -11.0F, -17.0F, 2.0F, 1.0F, 2.0F)
+			.texOffs(190, 0).addBox(-12.0F, -12.0F, -19.0F, 2.0F, 1.0F, 6.0F)
+			// 2. Bow Starboard (Dziób prawa burta)
+			.texOffs(190, 8).addBox(10.0F, -11.0F, -17.0F, 2.0F, 1.0F, 2.0F)
+			.texOffs(190, 0).addBox(10.0F, -12.0F, -19.0F, 2.0F, 1.0F, 6.0F)
+			// 3. Stern Port (Rufa lewa burta)
+			.texOffs(190, 8).addBox(-12.0F, -11.0F, 15.0F, 2.0F, 1.0F, 2.0F)
+			.texOffs(190, 0).addBox(-12.0F, -12.0F, 13.0F, 2.0F, 1.0F, 6.0F)
+			// 4. Stern Starboard (Rufa prawa burta)
+			.texOffs(190, 8).addBox(10.0F, -11.0F, 15.0F, 2.0F, 1.0F, 2.0F)
+			.texOffs(190, 0).addBox(10.0F, -12.0F, 13.0F, 2.0F, 1.0F, 6.0F),
 			PartPose.offset(0.0F, 24.0F, 0.0F)
 		);
 
@@ -99,6 +124,34 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 			PartPose.offset(0.0F, 15.0F, 23.0F)
 		);
 
+		// --- 4. 3D Mooring Rope Knots (Rendered when cleat is tied) ---
+		root.addOrReplaceChild("cleat_knot_0", CubeListBuilder.create()
+			.texOffs(190, 16).addBox(-12.8F, -12.5F, -18.5F, 3.6F, 2.5F, 5.0F),
+			PartPose.offset(0.0F, 24.0F, 0.0F));
+		root.addOrReplaceChild("cleat_knot_1", CubeListBuilder.create()
+			.texOffs(190, 16).addBox(9.2F, -12.5F, -18.5F, 3.6F, 2.5F, 5.0F),
+			PartPose.offset(0.0F, 24.0F, 0.0F));
+		root.addOrReplaceChild("cleat_knot_2", CubeListBuilder.create()
+			.texOffs(190, 16).addBox(-12.8F, -12.5F, 13.5F, 3.6F, 2.5F, 5.0F),
+			PartPose.offset(0.0F, 24.0F, 0.0F));
+		root.addOrReplaceChild("cleat_knot_3", CubeListBuilder.create()
+			.texOffs(190, 16).addBox(9.2F, -12.5F, 13.5F, 3.6F, 2.5F, 5.0F),
+			PartPose.offset(0.0F, 24.0F, 0.0F));
+
+		// White cylindrical fenders hung outside the gunwale. Each extends ~0.5 blocks off the hull.
+		root.addOrReplaceChild("fenders_port", CubeListBuilder.create()
+			.texOffs(220, 220).addBox(-19.0F, -6.0F, -9.0F, 6.0F, 14.0F, 5.0F)
+			.texOffs(220, 220).addBox(-16.2F, -11.0F, -7.2F, 1.2F, 6.0F, 1.2F)
+			.texOffs(220, 220).addBox(-19.0F, -6.0F, 4.0F, 6.0F, 14.0F, 5.0F)
+			.texOffs(220, 220).addBox(-16.2F, -11.0F, 5.8F, 1.2F, 6.0F, 1.2F),
+			PartPose.offset(0.0F, 24.0F, 0.0F));
+		root.addOrReplaceChild("fenders_starboard", CubeListBuilder.create()
+			.texOffs(220, 220).addBox(13.0F, -6.0F, -9.0F, 6.0F, 14.0F, 5.0F)
+			.texOffs(220, 220).addBox(15.0F, -11.0F, -7.2F, 1.2F, 6.0F, 1.2F)
+			.texOffs(220, 220).addBox(13.0F, -6.0F, 4.0F, 6.0F, 14.0F, 5.0F)
+			.texOffs(220, 220).addBox(15.0F, -11.0F, 5.8F, 1.2F, 6.0F, 1.2F),
+			PartPose.offset(0.0F, 24.0F, 0.0F));
+
 		return LayerDefinition.create(mesh, 256, 256);
 	}
 
@@ -125,5 +178,13 @@ public final class SailboatModel extends EntityModel<SailboatRenderState> {
 		// Toggle open sail vs furled canvas bundle
 		this.sailOpen.visible = !state.sailFurled;
 		this.sailFurled.visible = state.sailFurled;
+
+		// 3D Mooring rope knots on cleats
+		this.cleatKnot0.visible = state.cleatTied[0];
+		this.cleatKnot1.visible = state.cleatTied[1];
+		this.cleatKnot2.visible = state.cleatTied[2];
+		this.cleatKnot3.visible = state.cleatTied[3];
+		this.fendersPort.visible = state.fenderPort;
+		this.fendersStarboard.visible = state.fenderStarboard;
 	}
 }

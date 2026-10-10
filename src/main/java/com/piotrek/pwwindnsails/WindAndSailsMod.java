@@ -3,27 +3,36 @@ package com.piotrek.pwwindnsails;
 import com.piotrek.pwwindnsails.block.FlagpoleBlock;
 import com.piotrek.pwwindnsails.block.entity.FlagpoleBlockEntity;
 import com.piotrek.pwwindnsails.entity.SailboatEntity;
+import com.piotrek.pwwindnsails.entity.SportSailboatEntity;
 import com.piotrek.pwwindnsails.item.FlagpoleItem;
 import com.piotrek.pwwindnsails.item.SailboatItem;
+import com.piotrek.pwwindnsails.item.SportSailboatItem;
+import com.piotrek.pwwindnsails.network.MooringClickPayload;
 import com.piotrek.pwwindnsails.network.SailboatInputPayload;
 import com.piotrek.pwwindnsails.network.WindSyncPayload;
 import com.piotrek.pwwindnsails.wind.WindManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -54,12 +63,77 @@ public final class WindAndSailsMod implements ModInitializer {
 			.build(SAILBOAT_KEY)
 	);
 
+	public static final ResourceKey<EntityType<?>> SPORT_SAILBOAT_KEY = ResourceKey.create(Registries.ENTITY_TYPE, id("sport_sailboat"));
+	public static final EntityType<SportSailboatEntity> SPORT_SAILBOAT_ENTITY = Registry.register(
+		BuiltInRegistries.ENTITY_TYPE,
+		SPORT_SAILBOAT_KEY,
+		EntityType.Builder.of(SportSailboatEntity::new, MobCategory.MISC)
+			.sized(1.5F, 0.8F)
+			.eyeHeight(0.6F)
+			.clientTrackingRange(10)
+			.build(SPORT_SAILBOAT_KEY)
+	);
+
+	public static final ResourceKey<EntityType<?>> ANCHOR_KEY = ResourceKey.create(Registries.ENTITY_TYPE, id("anchor"));
+	public static final EntityType<com.piotrek.pwwindnsails.entity.AnchorEntity> ANCHOR_ENTITY = Registry.register(
+		BuiltInRegistries.ENTITY_TYPE,
+		ANCHOR_KEY,
+		EntityType.Builder.of(com.piotrek.pwwindnsails.entity.AnchorEntity::new, MobCategory.MISC)
+			.sized(0.6F, 0.8F)
+			.clientTrackingRange(10)
+			.build(ANCHOR_KEY)
+	);
+
+	public static final ResourceKey<EntityType<?>> BUOY_KEY = ResourceKey.create(Registries.ENTITY_TYPE, id("buoy"));
+	public static final EntityType<com.piotrek.pwwindnsails.entity.BuoyEntity> BUOY_ENTITY = Registry.register(
+		BuiltInRegistries.ENTITY_TYPE,
+		BUOY_KEY,
+		EntityType.Builder.of(com.piotrek.pwwindnsails.entity.BuoyEntity::new, MobCategory.MISC)
+			.sized(0.75F, 0.8F)
+			.clientTrackingRange(10)
+			.build(BUOY_KEY)
+	);
+
 	// Item Registration
 	public static final ResourceKey<Item> SAILBOAT_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("sailboat"));
 	public static final SailboatItem SAILBOAT_ITEM = Registry.register(
 		BuiltInRegistries.ITEM,
 		SAILBOAT_ITEM_KEY,
 		new SailboatItem(new Item.Properties().setId(SAILBOAT_ITEM_KEY).stacksTo(1))
+	);
+
+	public static final ResourceKey<Item> SPORT_SAILBOAT_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("sport_sailboat"));
+	public static final SportSailboatItem SPORT_SAILBOAT_ITEM = Registry.register(
+		BuiltInRegistries.ITEM,
+		SPORT_SAILBOAT_ITEM_KEY,
+		new SportSailboatItem(new Item.Properties().setId(SPORT_SAILBOAT_ITEM_KEY).stacksTo(1))
+	);
+
+	public static final ResourceKey<Item> ANCHOR_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("anchor"));
+	public static final com.piotrek.pwwindnsails.item.AnchorItem ANCHOR_ITEM = Registry.register(
+		BuiltInRegistries.ITEM,
+		ANCHOR_ITEM_KEY,
+		new com.piotrek.pwwindnsails.item.AnchorItem(new Item.Properties().setId(ANCHOR_ITEM_KEY).stacksTo(16))
+	);
+
+	public static final ResourceKey<Item> BUOY_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("buoy"));
+	public static final com.piotrek.pwwindnsails.item.BuoyItem BUOY_ITEM = Registry.register(
+		BuiltInRegistries.ITEM,
+		BUOY_ITEM_KEY,
+		new com.piotrek.pwwindnsails.item.BuoyItem(
+			com.piotrek.pwwindnsails.entity.BuoyEntity.TYPE_RED_SPHERICAL,
+			new Item.Properties().setId(BUOY_ITEM_KEY).stacksTo(16)
+		)
+	);
+
+	public static final ResourceKey<Item> CYLINDRICAL_BUOY_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("cylindrical_buoy"));
+	public static final com.piotrek.pwwindnsails.item.BuoyItem CYLINDRICAL_BUOY_ITEM = Registry.register(
+		BuiltInRegistries.ITEM,
+		CYLINDRICAL_BUOY_ITEM_KEY,
+		new com.piotrek.pwwindnsails.item.BuoyItem(
+			com.piotrek.pwwindnsails.entity.BuoyEntity.TYPE_BLUE_CYLINDRICAL,
+			new Item.Properties().setId(CYLINDRICAL_BUOY_ITEM_KEY).stacksTo(16)
+		)
 	);
 
 	// Block & BlockEntity Registration
@@ -89,12 +163,31 @@ public final class WindAndSailsMod implements ModInitializer {
 		FabricBlockEntityTypeBuilder.create(FlagpoleBlockEntity::new, FLAGPOLE_BLOCK).build()
 	);
 
+	// Pending manual fence mooring selection: Player clicked a fence post first, waiting to click a cleat on the boat
+	private static final java.util.Map<java.util.UUID, BlockPos> PENDING_FENCE_MOORINGS = new java.util.concurrent.ConcurrentHashMap<>();
+
+	public static void setPendingFenceMooring(java.util.UUID playerId, BlockPos pos) {
+		PENDING_FENCE_MOORINGS.put(playerId, pos);
+	}
+
+	public static BlockPos getPendingFenceMooring(java.util.UUID playerId) {
+		return PENDING_FENCE_MOORINGS.get(playerId);
+	}
+
+	public static BlockPos clearPendingFenceMooring(java.util.UUID playerId) {
+		return PENDING_FENCE_MOORINGS.remove(playerId);
+	}
+
 	// Creative Tab
 	public static final CreativeModeTab TAB = FabricCreativeModeTab.builder()
 		.title(Component.translatable("itemGroup.pw_wind_n_sails.group"))
 		.icon(SAILBOAT_ITEM::getDefaultInstance)
 		.displayItems((parameters, output) -> {
 			output.accept(SAILBOAT_ITEM);
+			output.accept(SPORT_SAILBOAT_ITEM);
+			output.accept(ANCHOR_ITEM);
+			output.accept(BUOY_ITEM);
+			output.accept(CYLINDRICAL_BUOY_ITEM);
 			output.accept(FLAGPOLE_ITEM);
 		})
 		.build();
@@ -107,6 +200,7 @@ public final class WindAndSailsMod implements ModInitializer {
 
 		// Network Payload Registrations
 		PayloadTypeRegistry.serverboundPlay().register(SailboatInputPayload.TYPE, SailboatInputPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(MooringClickPayload.TYPE, MooringClickPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(WindSyncPayload.TYPE, WindSyncPayload.CODEC);
 
 		// Handle Client Boat Controls on Server
@@ -124,13 +218,46 @@ public final class WindAndSailsMod implements ModInitializer {
 			});
 		});
 
+		ServerPlayNetworking.registerGlobalReceiver(MooringClickPayload.TYPE, (payload, context) -> {
+			context.server().execute(() -> SailboatEntity.handleMooringClick(
+				context.player(), payload.cleat(), payload.boatId(), payload.cleatIndex(), payload.fence()));
+		});
+
 		// Commands
 		com.piotrek.pwwindnsails.command.WindAndSailsCommands.register();
 
 		// World Tick & Player Sync
+		// Never scan every entity in the level here. That loop ran during world load,
+		// starved chunk sending, and hung the game on exit.
 		ServerTickEvents.END_LEVEL_TICK.register(level -> WindManager.getInstance().tickServer(level));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			WindManager.getInstance().syncToPlayer(handler.getPlayer());
+		});
+
+		UseItemCallback.EVENT.register((player, level, hand) -> {
+			if (hand != InteractionHand.MAIN_HAND) {
+				return InteractionResult.PASS;
+			}
+			// Aimed cleat wire or fence post owns the click. Neighbor blocks do not.
+			return SailboatEntity.handleAimedMooringClick(player) ? InteractionResult.SUCCESS : InteractionResult.PASS;
+		});
+
+		UseBlockCallback.EVENT.register((player, level, hand, hitResult) -> {
+			if (hand != InteractionHand.MAIN_HAND) {
+				return InteractionResult.PASS;
+			}
+			return SailboatEntity.handleAimedMooringClick(player) ? InteractionResult.SUCCESS : InteractionResult.PASS;
+		});
+
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
+			if (hand != InteractionHand.MAIN_HAND) {
+				return InteractionResult.PASS;
+			}
+			if (!(entity instanceof SailboatEntity) && !(entity instanceof LeashFenceKnotEntity) && !(entity instanceof com.piotrek.pwwindnsails.entity.BuoyEntity)) {
+				return InteractionResult.PASS;
+			}
+			// Boat pick-radius and a neighboring knot must not steal the highlighted post or cleat.
+			return SailboatEntity.handleAimedMooringClick(player) ? InteractionResult.SUCCESS : InteractionResult.PASS;
 		});
 	}
 }

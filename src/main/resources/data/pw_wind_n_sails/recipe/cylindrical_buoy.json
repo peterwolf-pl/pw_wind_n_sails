@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " L ",
+    "WBW",
+    " A "
+  ],
+  "key": {
+    "L": "minecraft:lead",
+    "B": "minecraft:blue_wool",
+    "W": "minecraft:white_wool",
+    "A": "pw_wind_n_sails:anchor"
+  },
+  "result": {
+    "id": "pw_wind_n_sails:cylindrical_buoy",
+    "count": 1
+  }
+}

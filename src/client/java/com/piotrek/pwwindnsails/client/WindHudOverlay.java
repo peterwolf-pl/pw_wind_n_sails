@@ -65,34 +65,32 @@ public final class WindHudOverlay implements HudElement {
 		String windCompass = DailyWindProfile.getCompassDirection(windDeg);
 
 		// Format wind direction & strength
-		String windText;
+		Component windComponent;
 		if (windStr < 0.06F) {
-			windText = "§bWiatr:§r §7FLAUTA (0.0 kn)§r";
+			windComponent = Component.translatable("hud.pw_wind_n_sails.wind_hud.wind.calm");
 		} else {
-			windText = String.format("§bWiatr:§r §e%.0f° %s§r §a(%.1f kn)§r", windDeg, windCompass, windKnots);
+			windComponent = Component.translatable("hud.pw_wind_n_sails.wind_hud.wind.active",
+				String.format("%.0f", windDeg), windCompass, String.format("%.1f", windKnots));
 		}
 
 		// Format gusts direction & strength
-		String gustText;
+		Component gustComponent;
 		if (hasGust) {
 			float gustMultPct = (gust.getStrengthMultiplier() - 1.0F) * 100.0F;
-			gustText = String.format("§6Szkwał:§r §e%.0f°§r §c%.1f kn (+%.0f%%)§r", windDeg, windKnots, gustMultPct);
+			gustComponent = Component.translatable("hud.pw_wind_n_sails.wind_hud.gust.active",
+				String.format("%.0f", windDeg), String.format("%.1f", windKnots), String.format("%.0f", gustMultPct));
 		} else if (windStr < 0.06F) {
-			gustText = "§6Szkwał:§r §7Brak§r";
+			gustComponent = Component.translatable("hud.pw_wind_n_sails.wind_hud.gust.none");
 		} else {
-			gustText = "§6Szkwał:§r §7Spokojnie§r";
+			gustComponent = Component.translatable("hud.pw_wind_n_sails.wind_hud.gust.calm");
 		}
 
 		// Forecast for the near future
-		String forecast = state.getForecast();
-		if (forecast == null || forecast.isEmpty()) {
-			forecast = "Stabilna pogoda";
-		}
-		String forecastText = "§7Prognoza:§r §f" + forecast + "§r";
+		Component forecastComponent = parseForecastComponent(state.getForecast());
+		Component forecastLabel = Component.translatable("hud.pw_wind_n_sails.wind_hud.forecast.format", forecastComponent);
 
-		Component fullLine = Component.literal(
-			String.format("%s  §8|§r  %s  §8|§r  %s", windText, gustText, forecastText)
-		);
+		Component fullLine = Component.translatable("hud.pw_wind_n_sails.wind_hud.line",
+			windComponent, gustComponent, forecastLabel);
 
 		int textWidth = font.width(fullLine);
 		int boxWidth = textWidth + 16;
@@ -105,5 +103,21 @@ public final class WindHudOverlay implements HudElement {
 		extractor.outline(boxX, boxY, boxWidth, boxHeight, 0x35FFFFFF);
 
 		extractor.centeredText(font, fullLine, width / 2, boxY + 4, 0xFFFFFFFF);
+	}
+
+	public static Component parseForecastComponent(String forecast) {
+		if (forecast == null || forecast.isEmpty() || "Stabilna pogoda".equals(forecast)) {
+			return Component.translatable("hud.pw_wind_n_sails.wind_hud.forecast.default");
+		}
+		if (forecast.startsWith("hud.pw_wind_n_sails.")) {
+			String[] parts = forecast.split(";");
+			if (parts.length == 1) {
+				return Component.translatable(parts[0]);
+			}
+			Object[] args = new Object[parts.length - 1];
+			System.arraycopy(parts, 1, args, 0, parts.length - 1);
+			return Component.translatable(parts[0], args);
+		}
+		return Component.literal(forecast);
 	}
 }

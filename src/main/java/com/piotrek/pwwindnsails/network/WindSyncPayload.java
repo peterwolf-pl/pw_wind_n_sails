@@ -34,7 +34,7 @@ public record WindSyncPayload(
 		float gustStrengthMult,
 		long gameTick
 	) {
-		this(baseDirection, baseStrength, targetDirection, targetStrength, gustActive, gustStartTick, gustDurationTicks, gustShiftDeg, gustStrengthMult, gameTick, "Stabilna pogoda", true);
+		this(baseDirection, baseStrength, targetDirection, targetStrength, gustActive, gustStartTick, gustDurationTicks, gustShiftDeg, gustStrengthMult, gameTick, "hud.pw_wind_n_sails.wind_hud.forecast.default", true);
 	}
 
 	public WindSyncPayload(

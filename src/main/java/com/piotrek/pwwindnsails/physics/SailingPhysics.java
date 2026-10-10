@@ -3,6 +3,7 @@ package com.piotrek.pwwindnsails.physics;
 import com.piotrek.pwwindnsails.WindAndSailsConfig;
 import com.piotrek.pwwindnsails.wind.WindVector;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -295,5 +296,99 @@ public final class SailingPhysics {
 			relAppWindDeg,
 			inIrons
 		);
+	}
+
+	/**
+	 * Precise Oriented Bounding Box (OBB) collision check for the boat hull against a block's collision box.
+	 * Uses 2D Separating Axis Theorem (SAT) in the horizontal plane (XZ) with forward bow taper,
+	 * preventing phantom block collision on diagonal sailing paths where blocks don't touch the physical hull.
+	 */
+	public static boolean hullIntersectsBlock(double boatX, double boatY, double boatZ, float yaw, AABB blockBox) {
+		return hullIntersectsBlock(boatX, boatY, boatZ, yaw, blockBox, -1.30, 1.40, 0.70);
+	}
+
+	public static boolean hullIntersectsBlock(
+		double boatX, double boatY, double boatZ, float yaw, AABB blockBox,
+		double hullMinFwd, double hullMaxFwd, double bowTaperStart
+	) {
+		// Vertical bounds check: ignore blocks fully underneath the hull bottom (e.g. shallow riverbed)
+		// or overhead blocks (hanging leaves, clearance above cockpit).
+		// Uses 0.02 to ensure low dock slabs, path blocks and water-level piers are recognized as obstacles.
+		if (blockBox.maxY <= boatY + 0.02 || blockBox.minY >= boatY + 0.70) {
+			return false;
+		}
+
+		float yawRad = yaw * Mth.DEG_TO_RAD;
+		double fwdX = -Mth.sin(yawRad);
+		double fwdZ = Mth.cos(yawRad);
+		double rightX = Mth.cos(yawRad);
+		double rightZ = Mth.sin(yawRad);
+
+		// Project the 4 horizontal corners of the block box onto the boat's local axes
+		double[] cornersX = new double[]{ blockBox.minX, blockBox.maxX, blockBox.minX, blockBox.maxX };
+		double[] cornersZ = new double[]{ blockBox.minZ, blockBox.minZ, blockBox.maxZ, blockBox.maxZ };
+
+		double minFwd = Double.POSITIVE_INFINITY;
+		double maxFwd = Double.NEGATIVE_INFINITY;
+		double minRight = Double.POSITIVE_INFINITY;
+		double maxRight = Double.NEGATIVE_INFINITY;
+
+		for (int i = 0; i < 4; i++) {
+			double dx = cornersX[i] - boatX;
+			double dz = cornersZ[i] - boatZ;
+
+			double projFwd = dx * fwdX + dz * fwdZ;
+			double projRight = dx * rightX + dz * rightZ;
+
+			if (projFwd < minFwd) minFwd = projFwd;
+			if (projFwd > maxFwd) maxFwd = projFwd;
+			if (projRight < minRight) minRight = projRight;
+			if (projRight > maxRight) maxRight = projRight;
+		}
+
+		// Hull longitudinal span
+		if (maxFwd < hullMinFwd || minFwd > hullMaxFwd) {
+			return false;
+		}
+
+		// Hull lateral span: gunwales at +/- 0.68m
+		double hullHalfWidth = 0.68;
+		if (maxRight < -hullHalfWidth || minRight > hullHalfWidth) {
+			return false;
+		}
+
+		// World X axis separating test
+		double extX = Math.abs(fwdX) * Math.max(Math.abs(hullMinFwd), Math.abs(hullMaxFwd)) + Math.abs(rightX) * hullHalfWidth;
+		if (blockBox.maxX < boatX - extX || blockBox.minX > boatX + extX) {
+			return false;
+		}
+
+		// World Z axis separating test
+		double extZ = Math.abs(fwdZ) * Math.max(Math.abs(hullMinFwd), Math.abs(hullMaxFwd)) + Math.abs(rightZ) * hullHalfWidth;
+		if (blockBox.maxZ < boatZ - extZ || blockBox.minZ > boatZ + extZ) {
+			return false;
+		}
+
+		// Bow narrowing taper: from bowTaperStart to hullMaxFwd, hull half-width narrows down to 0.32m
+		if (minFwd > bowTaperStart && hullMaxFwd > bowTaperStart) {
+			double taperFraction = (minFwd - bowTaperStart) / (hullMaxFwd - bowTaperStart);
+			double bowHalfWidth = Mth.lerp((float) Mth.clamp(taperFraction, 0.0, 1.0), 0.68F, 0.32F);
+			if (minRight > bowHalfWidth || maxRight < -bowHalfWidth) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/** Push from a dock or shore sample back toward open water. */
+	public static Vec3 awayFromContact(double boatX, double boatZ, double contactX, double contactZ, double strength) {
+		double dx = boatX - contactX;
+		double dz = boatZ - contactZ;
+		double len = Math.hypot(dx, dz);
+		if (len < 1.0E-4 || strength == 0.0) {
+			return Vec3.ZERO;
+		}
+		return new Vec3(dx / len * strength, 0.0, dz / len * strength);
 	}
 }

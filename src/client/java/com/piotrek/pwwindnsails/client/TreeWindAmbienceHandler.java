@@ -32,7 +32,10 @@ public final class TreeWindAmbienceHandler {
 
 		LocalPlayer player = client.player;
 		ClientLevel level = client.level;
-		if (player == null || level == null) {
+		if (player == null || level == null || player.tickCount < 80) {
+			return;
+		}
+		if (level.getChunkSource().getChunkNow(player.getBlockX() >> 4, player.getBlockZ() >> 4) == null) {
 			return;
 		}
 

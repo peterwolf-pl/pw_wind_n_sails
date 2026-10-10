@@ -3,6 +3,7 @@ package com.piotrek.pwwindnsails.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.piotrek.pwwindnsails.WindAndSailsConfig;
+import com.piotrek.pwwindnsails.entity.SailboatEntity;
 import com.piotrek.pwwindnsails.wind.WindGust;
 import com.piotrek.pwwindnsails.wind.WindManager;
 import com.piotrek.pwwindnsails.wind.WindState;
@@ -12,31 +13,37 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Client-side wind visualizer that renders aerodynamic wind arrows over water surfaces.
- * Supports multiple visual styles cycled via TAB.
+ * Client-side wind visualizer that renders sleek aerodynamic wind arrows over water surfaces.
+ * Visible exclusively while riding a sailboat.
+ * Selected style is configured via /windarrow or /windsails arrow, and toggled on/off via TAB.
  */
 public final class WindVisualizerRenderer {
 
 	public enum VisualizerMode {
-		SEAFOAM_WHITE("1/5: Jasna piana morska (Biel)", 245, 252, 255, 195, 255, 255, 255, 245),
-		BRIGHT_CYAN("2/5: Jasny błękit (Cyjan)", 90, 225, 255, 200, 150, 245, 255, 245),
-		WARM_AMBER("3/5: Bursztynowy wiatr (Złoto)", 255, 215, 95, 195, 255, 235, 140, 245),
-		SOFT_SKY("4/5: Subtelny błękit (Łagodny)", 155, 210, 245, 140, 185, 230, 255, 185),
-		WATER_SHADOW("5/5: Ciemny cień wody (Grafit)", 12, 28, 55, 155, 8, 20, 42, 195),
-		OFF("Wyłączone", 0, 0, 0, 0, 0, 0, 0, 0);
+		SEAFOAM_WHITE(1, "1/5: Jasna piana morska (Biel)", "seafoam", 245, 252, 255, 195, 255, 255, 255, 245),
+		BRIGHT_CYAN(2, "2/5: Jasny błękit (Cyjan)", "cyan", 90, 225, 255, 200, 150, 245, 255, 245),
+		WARM_AMBER(3, "3/5: Bursztynowy wiatr (Złoto)", "amber", 255, 215, 95, 195, 255, 235, 140, 245),
+		SOFT_SKY(4, "4/5: Subtelny błękit (Łagodny)", "sky", 155, 210, 245, 140, 185, 230, 255, 185),
+		WATER_SHADOW(5, "5/5: Ciemny cień wody (Grafit)", "shadow", 12, 28, 55, 155, 8, 20, 42, 195),
+		OFF(0, "Wyłączone", "off", 0, 0, 0, 0, 0, 0, 0, 0);
 
+		private final int id;
 		private final String displayName;
+		private final String alias;
 		private final int r, g, b, a;
 		private final int gustR, gustG, gustB, gustA;
 
-		VisualizerMode(String displayName, int r, int g, int b, int a, int gustR, int gustG, int gustB, int gustA) {
+		VisualizerMode(int id, String displayName, String alias, int r, int g, int b, int a, int gustR, int gustG, int gustB, int gustA) {
+			this.id = id;
 			this.displayName = displayName;
+			this.alias = alias;
 			this.r = r;
 			this.g = g;
 			this.b = b;
@@ -47,8 +54,20 @@ public final class WindVisualizerRenderer {
 			this.gustA = gustA;
 		}
 
+		public int getId() {
+			return this.id;
+		}
+
+		public Component getComponent() {
+			return Component.translatable("hud.pw_wind_n_sails.visualizer.mode." + this.alias);
+		}
+
 		public String getDisplayName() {
 			return this.displayName;
+		}
+
+		public String getAlias() {
+			return this.alias;
 		}
 
 		public boolean isEnabled() {
@@ -70,9 +89,33 @@ public final class WindVisualizerRenderer {
 		public int getA(boolean gusting) {
 			return gusting ? this.gustA : this.a;
 		}
+
+		public static VisualizerMode fromInput(String input) {
+			if (input == null) return null;
+			String trimmed = input.trim().toLowerCase();
+			for (VisualizerMode m : values()) {
+				if (m == OFF) continue;
+				if (String.valueOf(m.id).equals(trimmed) || m.alias.equalsIgnoreCase(trimmed) || m.name().equalsIgnoreCase(trimmed)) {
+					return m;
+				}
+			}
+			return null;
+		}
 	}
 
+	private static VisualizerMode selectedStyle = VisualizerMode.SEAFOAM_WHITE;
 	private static VisualizerMode currentMode = VisualizerMode.SEAFOAM_WHITE;
+
+	public static VisualizerMode getSelectedStyle() {
+		return selectedStyle;
+	}
+
+	public static void setSelectedStyle(VisualizerMode style) {
+		if (style != null && style != VisualizerMode.OFF) {
+			selectedStyle = style;
+			currentMode = style;
+		}
+	}
 
 	public static VisualizerMode getCurrentMode() {
 		return currentMode;
@@ -80,20 +123,40 @@ public final class WindVisualizerRenderer {
 
 	public static void setMode(VisualizerMode mode) {
 		currentMode = mode != null ? mode : VisualizerMode.OFF;
+		if (currentMode != VisualizerMode.OFF) {
+			selectedStyle = currentMode;
+		}
 	}
 
 	public static boolean isEnabled() {
 		return currentMode.isEnabled();
 	}
 
+	/**
+	 * Toggles between the selected arrow style and OFF.
+	 * TAB now strictly toggles the selected style on/off instead of cycling through all styles.
+	 */
+	public static boolean toggleSelected() {
+		if (currentMode == VisualizerMode.OFF) {
+			currentMode = selectedStyle;
+			return true;
+		} else {
+			currentMode = VisualizerMode.OFF;
+			return false;
+		}
+	}
+
 	public static void toggle() {
-		cycleMode();
+		toggleSelected();
 	}
 
 	public static VisualizerMode cycleMode() {
 		VisualizerMode[] values = VisualizerMode.values();
 		int nextIndex = (currentMode.ordinal() + 1) % values.length;
 		currentMode = values[nextIndex];
+		if (currentMode != VisualizerMode.OFF) {
+			selectedStyle = currentMode;
+		}
 		return currentMode;
 	}
 
@@ -104,7 +167,10 @@ public final class WindVisualizerRenderer {
 
 		Minecraft client = Minecraft.getInstance();
 		ClientLevel level = client.level;
-		if (level == null || client.player == null) {
+		if (level == null || client.player == null || client.player.tickCount < 80) {
+			return;
+		}
+		if (level.getChunkSource().getChunkNow(client.player.getBlockX() >> 4, client.player.getBlockZ() >> 4) == null) {
 			return;
 		}
 
@@ -153,10 +219,11 @@ public final class WindVisualizerRenderer {
 		int maxAlpha = currentMode.getA(isGusting);
 
 		float animTime = (gameTime + partialTick) * (windStr * 0.12F);
-		float arrowLength = 1.2F + windStr * 1.5F;
-		float width = 0.32F + windStr * 0.18F;
+		float arrowLength = 1.0F + windStr * 1.2F;
+		// Sleek, refined aerodynamic width (approx ~3x thinner than bulky original)
+		float width = 0.10F + windStr * 0.06F;
 		float hw = width * 0.5F;
-		float headLen = arrowLength * 0.42F;
+		float headLen = arrowLength * 0.32F;
 
 		context.submitNodeCollector().submitCustomGeometry(
 			poseStack,
@@ -198,22 +265,22 @@ public final class WindVisualizerRenderer {
 								double neckX = endX - dirX * headLen;
 								double neckZ = endZ - dirZ * headLen;
 
-								// 1. Thick main body ribbon (tapers from tail to neck)
+								// 1. Sleek main body ribbon (tapers gracefully from tail to neck)
 								drawQuad(
 									consumer, pose,
-									startX - perpX * (hw * 0.50), startY, startZ - perpZ * (hw * 0.50),
-									startX + perpX * (hw * 0.50), startY, startZ + perpZ * (hw * 0.50),
+									startX - perpX * (hw * 0.40), startY, startZ - perpZ * (hw * 0.40),
+									startX + perpX * (hw * 0.40), startY, startZ + perpZ * (hw * 0.40),
 									neckX + perpX * hw, startY, neckZ + perpZ * hw,
 									neckX - perpX * hw, startY, neckZ - perpZ * hw,
 									r, g, b, a
 								);
 
-								// 2. Thick arrowhead chevron (wide bright/dark arrow cap)
+								// 2. Sleek aerodynamic arrowhead chevron
 								drawQuad(
 									consumer, pose,
-									neckX - perpX * (hw * 2.5), startY, neckZ - perpZ * (hw * 2.5),
+									neckX - perpX * (hw * 2.2), startY, neckZ - perpZ * (hw * 2.2),
 									endX, startY, endZ,
-									neckX + perpX * (hw * 2.5), startY, neckZ + perpZ * (hw * 2.5),
+									neckX + perpX * (hw * 2.2), startY, neckZ + perpZ * (hw * 2.2),
 									neckX, startY, neckZ,
 									r, g, b, a
 								);

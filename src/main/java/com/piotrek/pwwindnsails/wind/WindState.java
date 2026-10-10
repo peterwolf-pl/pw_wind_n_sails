@@ -34,6 +34,12 @@ public final class WindState {
 	private float lastDiurnalFactor = 1.0F;
 	private String forecast = "";
 
+	private boolean manualOverride = false;
+	@Nullable
+	private Float manualStrength = null;
+	@Nullable
+	private Float manualDirection = null;
+
 	public WindState(float initialDirectionDeg, float initialStrength) {
 		this(initialDirectionDeg, initialStrength, 12345L, false);
 	}
@@ -127,6 +133,33 @@ public final class WindState {
 		this.targetStrength = this.baseStrength;
 	}
 
+	public void setManualOverride(@Nullable Float strength, @Nullable Float directionDeg) {
+		this.manualOverride = true;
+		if (strength != null) {
+			this.manualStrength = Mth.clamp(strength, 0.0F, 2.0F);
+			this.baseStrength = this.manualStrength;
+			this.targetStrength = this.manualStrength;
+			if (this.manualStrength < 0.04F) {
+				this.currentGust = null;
+			}
+		}
+		if (directionDeg != null) {
+			this.manualDirection = normalizeDeg(directionDeg);
+			this.baseDirectionDeg = this.manualDirection;
+			this.targetDirectionDeg = this.manualDirection;
+		}
+	}
+
+	public void clearManualOverride() {
+		this.manualOverride = false;
+		this.manualStrength = null;
+		this.manualDirection = null;
+	}
+
+	public boolean isManualOverride() {
+		return this.manualOverride;
+	}
+
 	public void setTarget(float directionDeg, float strength) {
 		this.targetDirectionDeg = normalizeDeg(directionDeg);
 		this.targetStrength = Mth.clamp(strength, 0.0F, 2.0F);
@@ -160,6 +193,23 @@ public final class WindState {
 		// Clean up expired gust
 		if (this.currentGust != null && this.currentGust.isExpired(currentTick)) {
 			this.currentGust = null;
+		}
+
+		// When manual override is active (via /windsails wind set or /wind set),
+		// lock wind values and bypass natural daily weather simulation
+		if (this.manualOverride) {
+			if (this.manualStrength != null) {
+				this.baseStrength = this.manualStrength;
+				this.targetStrength = this.manualStrength;
+				if (this.manualStrength < 0.04F) {
+					this.currentGust = null;
+				}
+			}
+			if (this.manualDirection != null) {
+				this.baseDirectionDeg = this.manualDirection;
+				this.targetDirectionDeg = this.manualDirection;
+			}
+			return;
 		}
 
 		long dayIndex = Math.floorDiv(dayTime, 24000L);

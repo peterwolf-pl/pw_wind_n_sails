@@ -15,6 +15,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import org.jetbrains.annotations.Nullable;
 
 public final class WindAndSailsCommands {
 	private WindAndSailsCommands() {}
@@ -23,6 +24,8 @@ public final class WindAndSailsCommands {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			registerCommands(dispatcher, "windsails");
 			registerCommands(dispatcher, "sailing");
+			registerWindAlias(dispatcher, "wind");
+			registerSetWindShortcut(dispatcher, "setwind");
 		});
 	}
 
@@ -94,69 +97,43 @@ public final class WindAndSailsCommands {
 				)
 			)
 			.then(Commands.literal("wind")
-				.executes(ctx -> {
-					ServerLevel level = ctx.getSource().getLevel();
-					long tick = level.getGameTime();
-					long dayTime = level.getDefaultClockTime();
-					long dayIndex = Math.floorDiv(dayTime, 24000L);
-					int timeOfDay = (int) Math.floorMod(dayTime, 24000L);
-					WindState state = com.piotrek.pwwindnsails.wind.WindManager.getInstance().getWindState(level);
-					com.piotrek.pwwindnsails.wind.WindVector wind = state.getWindVector(tick);
-					com.piotrek.pwwindnsails.wind.DailyWindProfile profile = state.getCurrentDayProfile();
-					com.piotrek.pwwindnsails.wind.WindGust gust = state.getCurrentGust();
-					boolean hasGust = (gust != null && !gust.isExpired(tick));
-
-					String dirStr = getCompassDirection(wind.directionDeg());
-					String dayTypeStr = profile != null ? profile.dayType().getDisplayName() : "Umiarkowany wiatr";
-					boolean isNight = (timeOfDay >= 13000 && timeOfDay <= 23000);
-					String timePhaseStr = isNight ? (profile != null && profile.windyNight() ? "Noc (wietrzna, stabilna)" : "Noc (spokojna, równa)") : "Dzień (aktywny)";
-					double speedKnots = wind.strength() * 38.87;
-
-					String msg = String.format(
-						"§b[Wiatr]§r Dzień #%d (%s)\n" +
-						"§7Kierunek:§r §e%.1f°§r (%s), §7Siła:§r §a%.2f§r (~§a%.1f kn§r)\n" +
-						"§7Warunki:§r §e%s§r | §7Pora:§r §f%s§r\n" +
-						"§7Szkwał:§r %s",
-						dayIndex + 1,
-						timePhaseStr,
-						wind.directionDeg(), dirStr, wind.strength(), speedKnots,
-						dayTypeStr,
-						isNight ? "Noc" : "Dzień",
-						hasGust ? String.format("§cAktywny (x%.2f, odch. %.1f°)§r", gust.getStrengthMultiplier(), gust.getDirectionShiftDeg()) : "§7Brak§r"
-					);
-					ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
-					return 1;
-				})
+				.executes(ctx -> showWindInfo(ctx.getSource()))
 				.then(Commands.literal("set")
-					.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+					.requires(WindAndSailsCommands::canModify)
 					.then(Commands.argument("strength", FloatArgumentType.floatArg(0.0F, 2.0F))
-						.executes(ctx -> {
-							float str = FloatArgumentType.getFloat(ctx, "strength");
-							ServerLevel level = ctx.getSource().getLevel();
-							WindState state = com.piotrek.pwwindnsails.wind.WindManager.getInstance().getWindState(level);
-							state.setBase(state.getBaseDirectionDeg(), str);
-							ctx.getSource().sendSuccess(
-								() -> Component.literal(String.format("§b[Wiatr]§r Prędkość wiatru ustawiona na: §a%.2f§r", str)),
-								true
-							);
-							return 1;
-						})
+						.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), null))
 						.then(Commands.argument("direction", FloatArgumentType.floatArg(0.0F, 360.0F))
-							.executes(ctx -> {
-								float str = FloatArgumentType.getFloat(ctx, "strength");
-								float dir = FloatArgumentType.getFloat(ctx, "direction");
-								ServerLevel level = ctx.getSource().getLevel();
-								WindState state = com.piotrek.pwwindnsails.wind.WindManager.getInstance().getWindState(level);
-								state.setBase(dir, str);
-								ctx.getSource().sendSuccess(
-									() -> Component.literal(String.format("§b[Wiatr]§r Kierunek wiatru ustawiony na §e%.1f°§r, prędkość na §a%.2f§r", dir, str)),
-									true
-								);
-								return 1;
-							})
+							.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), FloatArgumentType.getFloat(ctx, "direction")))
 						)
 					)
 				)
+				.then(Commands.literal("reset")
+					.requires(WindAndSailsCommands::canModify)
+					.executes(ctx -> executeResetWind(ctx.getSource()))
+				)
+				// Direct shorthand: /windsails wind <strength> [direction]
+				.then(Commands.argument("strength", FloatArgumentType.floatArg(0.0F, 2.0F))
+					.requires(WindAndSailsCommands::canModify)
+					.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), null))
+					.then(Commands.argument("direction", FloatArgumentType.floatArg(0.0F, 360.0F))
+						.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), FloatArgumentType.getFloat(ctx, "direction")))
+					)
+				)
+			)
+			// Direct shorthand: /windsails set <strength> [direction]
+			.then(Commands.literal("set")
+				.requires(WindAndSailsCommands::canModify)
+				.then(Commands.argument("strength", FloatArgumentType.floatArg(0.0F, 2.0F))
+					.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), null))
+					.then(Commands.argument("direction", FloatArgumentType.floatArg(0.0F, 360.0F))
+						.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), FloatArgumentType.getFloat(ctx, "direction")))
+					)
+				)
+			)
+			// Direct shorthand: /windsails reset
+			.then(Commands.literal("reset")
+				.requires(WindAndSailsCommands::canModify)
+				.executes(ctx -> executeResetWind(ctx.getSource()))
 			)
 			.then(Commands.literal("environment")
 				.executes(ctx -> {
@@ -237,9 +214,136 @@ public final class WindAndSailsCommands {
 					);
 					return 1;
 				})
+			)
+			.then(Commands.literal("arrow")
+				.executes(ctx -> {
+					ctx.getSource().sendSuccess(
+						() -> Component.literal(
+							"§b[Strzałki wiatru]§r Użyj komendy: §f/windarrow <1..5 lub nazwa>§r\n" +
+							"§81. seafoam, 2. cyan, 3. amber, 4. sky, 5. shadow§r\n" +
+							"Włączanie/wyłączanie w łódce: klawisz §eTAB§r."
+						),
+						false
+					);
+					return 1;
+				})
 			);
 
 		dispatcher.register(root);
+	}
+
+	private static void registerWindAlias(CommandDispatcher<CommandSourceStack> dispatcher, String aliasName) {
+		dispatcher.register(Commands.literal(aliasName)
+			.executes(ctx -> showWindInfo(ctx.getSource()))
+			.then(Commands.literal("set")
+				.requires(WindAndSailsCommands::canModify)
+				.then(Commands.argument("strength", FloatArgumentType.floatArg(0.0F, 2.0F))
+					.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), null))
+					.then(Commands.argument("direction", FloatArgumentType.floatArg(0.0F, 360.0F))
+						.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), FloatArgumentType.getFloat(ctx, "direction")))
+					)
+				)
+			)
+			.then(Commands.literal("reset")
+				.requires(WindAndSailsCommands::canModify)
+				.executes(ctx -> executeResetWind(ctx.getSource()))
+			)
+			.then(Commands.argument("strength", FloatArgumentType.floatArg(0.0F, 2.0F))
+				.requires(WindAndSailsCommands::canModify)
+				.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), null))
+				.then(Commands.argument("direction", FloatArgumentType.floatArg(0.0F, 360.0F))
+					.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), FloatArgumentType.getFloat(ctx, "direction")))
+				)
+			)
+		);
+	}
+
+	private static void registerSetWindShortcut(CommandDispatcher<CommandSourceStack> dispatcher, String commandName) {
+		dispatcher.register(Commands.literal(commandName)
+			.requires(WindAndSailsCommands::canModify)
+			.then(Commands.argument("strength", FloatArgumentType.floatArg(0.0F, 2.0F))
+				.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), null))
+				.then(Commands.argument("direction", FloatArgumentType.floatArg(0.0F, 360.0F))
+					.executes(ctx -> executeSetWind(ctx.getSource(), FloatArgumentType.getFloat(ctx, "strength"), FloatArgumentType.getFloat(ctx, "direction")))
+				)
+			)
+		);
+	}
+
+	private static boolean canModify(CommandSourceStack source) {
+		if (source.getServer() == null) {
+			return true;
+		}
+		// In singleplayer, always permit testing and changing wind
+		if (!source.getServer().isDedicatedServer()) {
+			return true;
+		}
+		return Commands.hasPermission(Commands.LEVEL_GAMEMASTERS).test(source);
+	}
+
+	private static int showWindInfo(CommandSourceStack source) {
+		ServerLevel level = source.getLevel();
+		long tick = level.getGameTime();
+		long dayTime = level.getDefaultClockTime();
+		long dayIndex = Math.floorDiv(dayTime, 24000L);
+		int timeOfDay = (int) Math.floorMod(dayTime, 24000L);
+		WindState state = WindManager.getInstance().getWindState(level);
+		WindVector wind = state.getWindVector(tick);
+		DailyWindProfile profile = state.getCurrentDayProfile();
+		WindGust gust = state.getCurrentGust();
+		boolean hasGust = (gust != null && !gust.isExpired(tick));
+
+		String dirStr = getCompassDirection(wind.directionDeg());
+		String dayTypeStr = profile != null ? profile.dayType().getDisplayName() : "Umiarkowany wiatr";
+		boolean isNight = (timeOfDay >= 13000 && timeOfDay <= 23000);
+		String timePhaseStr = isNight ? (profile != null && profile.windyNight() ? "Noc (wietrzna, stabilna)" : "Noc (spokojna, równa)") : "Dzień (aktywny)";
+		double speedKnots = wind.strength() * 38.87;
+
+		String overrideStatus = state.isManualOverride() ? " §6[Tryb ręczny: /windsails reset aby przywrócić cykl]§r" : "";
+
+		String msg = String.format(
+			"§b[Wiatr]§r Dzień #%d (%s)%s\n" +
+			"§7Kierunek:§r §e%.1f°§r (%s), §7Siła:§r §a%.2f§r (~§a%.1f kn§r)\n" +
+			"§7Warunki:§r §e%s§r | §7Pora:§r §f%s§r\n" +
+			"§7Szkwał:§r %s",
+			dayIndex + 1,
+			timePhaseStr,
+			overrideStatus,
+			wind.directionDeg(), dirStr, wind.strength(), speedKnots,
+			dayTypeStr,
+			isNight ? "Noc" : "Dzień",
+			hasGust ? String.format("§cAktywny (x%.2f, odch. %.1f°)§r", gust.getStrengthMultiplier(), gust.getDirectionShiftDeg()) : "§7Brak§r"
+		);
+		source.sendSuccess(() -> Component.literal(msg), false);
+		return 1;
+	}
+
+	private static int executeSetWind(CommandSourceStack source, float strength, @Nullable Float direction) {
+		ServerLevel level = source.getLevel();
+		WindState state = WindManager.getInstance().getWindState(level);
+		state.setManualOverride(strength, direction);
+		WindManager.getInstance().syncAll(level);
+
+		double speedKnots = strength * 38.87;
+		String dirInfo = direction != null ? String.format(", kierunek: §e%.0f°§r (%s)", direction, getCompassDirection(direction)) : "";
+		source.sendSuccess(
+			() -> Component.literal(String.format("§b[Wiatr]§r Siła wiatru ustawiona na: §a%.2f§r (~§a%.1f kn§r)%s. Tryb manualny aktywny.",
+				strength, speedKnots, dirInfo)),
+			true
+		);
+		return 1;
+	}
+
+	private static int executeResetWind(CommandSourceStack source) {
+		ServerLevel level = source.getLevel();
+		WindState state = WindManager.getInstance().getWindState(level);
+		state.clearManualOverride();
+		WindManager.getInstance().syncAll(level);
+		source.sendSuccess(
+			() -> Component.literal("§b[Wiatr]§r Przywrócono naturalny dobowy cykl wiatru i prognozę pogody."),
+			true
+		);
+		return 1;
 	}
 
 	private static String getCompassDirection(float deg) {

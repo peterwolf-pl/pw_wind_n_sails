@@ -187,11 +187,19 @@ public class WindTest {
 		String daytimeForecast = DailyWindProfile.generateForecast(6000L, pCurrent, pNext);
 		assertNotNull(daytimeForecast);
 		assertFalse(daytimeForecast.isEmpty());
+		assertTrue(daytimeForecast.startsWith("hud.pw_wind_n_sails.wind_hud.forecast."));
 
 		// Evening forecast
 		String eveningForecast = DailyWindProfile.generateForecast(15000L, pCurrent, pNext);
 		assertNotNull(eveningForecast);
 		assertFalse(eveningForecast.isEmpty());
+		assertTrue(eveningForecast.startsWith("hud.pw_wind_n_sails.wind_hud.forecast."));
+
+		// Forecast component parser test
+		net.minecraft.network.chat.Component parsed = com.piotrek.pwwindnsails.client.WindHudOverlay.parseForecastComponent(daytimeForecast);
+		assertNotNull(parsed);
+		net.minecraft.network.chat.Component defaultParsed = com.piotrek.pwwindnsails.client.WindHudOverlay.parseForecastComponent(null);
+		assertEquals("hud.pw_wind_n_sails.wind_hud.forecast.default", defaultParsed.getString());
 
 		// Client sync test
 		WindManager manager = WindManager.getInstance();
@@ -277,5 +285,32 @@ public class WindTest {
 		assertTrue(payloadOn.environmentalEffects());
 		WindManager.getInstance().applyClientSync(payloadOn);
 		assertTrue(com.piotrek.pwwindnsails.WindAndSailsConfig.environmentalWindEffects);
+	}
+
+	@Test
+	public void testManualOverridePersistence() {
+		WindState state = new WindState(180.0F, 0.5F, 999L, true);
+		net.minecraft.util.RandomSource random = net.minecraft.util.RandomSource.create(42L);
+
+		// Force complete calm flauta (0.0 strength)
+		state.setManualOverride(0.0F, 90.0F);
+		assertTrue(state.isManualOverride());
+		assertEquals(0.0F, state.getBaseStrength(), 1e-4F);
+		assertEquals(90.0F, state.getBaseDirectionDeg(), 1e-4F);
+
+		// Run 200 server ticks across daytime hours
+		for (long tick = 1000L; tick < 1200L; tick++) {
+			state.tickServer(tick, tick, random);
+			assertEquals(0.0F, state.getBaseStrength(), 1e-4F, "Manual override strength must not be overwritten by daily profile");
+			assertEquals(90.0F, state.getBaseDirectionDeg(), 1e-4F, "Manual override direction must not be overwritten by daily profile");
+		}
+
+		// Clear override and ensure normal progression resumes
+		state.clearManualOverride();
+		assertFalse(state.isManualOverride());
+		for (long tick = 1200L; tick < 1600L; tick++) {
+			state.tickServer(tick, tick, random);
+		}
+		assertTrue(state.getBaseStrength() > 0.01F, "After clearing override, natural wind must resume");
 	}
 }

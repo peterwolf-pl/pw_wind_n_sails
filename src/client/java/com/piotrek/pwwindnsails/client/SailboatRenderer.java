@@ -48,10 +48,13 @@ public final class SailboatRenderer extends EntityRenderer<SailboatEntity, Sailb
 		state.speed = (float) entity.getDeltaMovement().horizontalDistance();
 		state.hurtTime = entity.getHurtTime();
 		state.damage = entity.getDamage();
+		SailboatCleatHelper.extractCleatStates(entity, state, partialTick);
 	}
 
 	@Override
 	public void submit(SailboatRenderState state, PoseStack stack, SubmitNodeCollector collector, CameraRenderState camera) {
+		super.submit(state, stack, collector, camera);
+
 		stack.pushPose();
 		stack.rotateDegrees(Axis.YP, 180.0F - state.yaw);
 

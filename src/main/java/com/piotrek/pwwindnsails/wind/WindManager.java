@@ -76,6 +76,16 @@ public final class WindManager {
 		}
 	}
 
+	public void syncAll(ServerLevel level) {
+		long tick = level.getGameTime();
+		long dayTime = level.getDefaultClockTime();
+		WindState state = this.getWindState(level);
+		WindSyncPayload payload = createPayload(state, tick, dayTime);
+		for (ServerPlayer player : PlayerLookup.level(level)) {
+			ServerPlayNetworking.send(player, payload);
+		}
+	}
+
 	public void syncToPlayer(ServerPlayer player) {
 		ServerLevel level = player.level();
 		long tick = level.getGameTime();
@@ -113,7 +123,7 @@ public final class WindManager {
 		DailyWindProfile pNext = state.getNextDayProfile();
 		String forecast = (pCurrent != null && pNext != null)
 			? DailyWindProfile.generateForecast(dayTime, pCurrent, pNext)
-			: "Stabilna pogoda";
+			: "hud.pw_wind_n_sails.wind_hud.forecast.default";
 
 		return new WindSyncPayload(
 			state.getBaseDirectionDeg(),

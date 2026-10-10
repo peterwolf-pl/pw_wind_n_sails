@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "default": "outlined_sprite:pw_wind_n_sails/buoy_red.png",
+    "0": "outlined_sprite:pw_wind_n_sails/buoy_red.png",
+    "1": "outlined_sprite:pw_wind_n_sails/buoy_blue.png"
+  }
+}

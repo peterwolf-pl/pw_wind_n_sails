@@ -52,25 +52,25 @@ public final class SailboatHudOverlay implements HudElement {
 
 		boolean isFlauta = wind.strength() < 0.06F;
 
-		String pointOfSail;
+		Component pointOfSail;
 		int colorPointOfSail;
 		if (isFlauta && horizontalSpeed < 0.05) {
-			pointOfSail = "FLAUTA (Cisza na wodzie)";
+			pointOfSail = Component.translatable("hud.pw_wind_n_sails.point_of_sail.calm");
 			colorPointOfSail = 0xFFAAAAAA; // Gray
 		} else if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
-			pointOfSail = "IN IRONS (Head to Wind)";
+			pointOfSail = Component.translatable("hud.pw_wind_n_sails.point_of_sail.in_irons");
 			colorPointOfSail = 0xFFFF5555; // Red
 		} else if (relWindDeg < 65.0F) {
-			pointOfSail = "Close-Hauled (Tight Sheet)";
+			pointOfSail = Component.translatable("hud.pw_wind_n_sails.point_of_sail.close_hauled");
 			colorPointOfSail = 0xFF55FFFF; // Cyan
 		} else if (relWindDeg < 115.0F) {
-			pointOfSail = "Beam Reach (Fast)";
+			pointOfSail = Component.translatable("hud.pw_wind_n_sails.point_of_sail.beam_reach");
 			colorPointOfSail = 0xFF55FF55; // Green
 		} else if (relWindDeg < 155.0F) {
-			pointOfSail = "Broad Reach";
+			pointOfSail = Component.translatable("hud.pw_wind_n_sails.point_of_sail.broad_reach");
 			colorPointOfSail = 0xFFFFFF55; // Yellow
 		} else {
-			pointOfSail = "Running Downwind (Ease Sheet)";
+			pointOfSail = Component.translatable("hud.pw_wind_n_sails.point_of_sail.running");
 			colorPointOfSail = 0xFFFFAA00; // Orange
 		}
 
@@ -88,34 +88,34 @@ public final class SailboatHudOverlay implements HudElement {
 		float actualBoom = Math.min(maxBoom, freeBoom);
 		float aoa = relWindDeg - actualBoom;
 
-		String trimHint;
+		Component trimHint;
 		int colorTrim;
 		if (boat.isSailFurled()) {
-			trimHint = "Żagiel ZWINIĘTY [X / PPM maszt - rozwiń]";
+			trimHint = Component.translatable("hud.pw_wind_n_sails.trim.furled");
 			colorTrim = 0xFF55FFFF; // Cyan
 		} else if (isFlauta) {
-			trimHint = "Flauta (Brak ciągu wiatru)";
+			trimHint = Component.translatable("hud.pw_wind_n_sails.trim.calm");
 			colorTrim = 0xFFAAAAAA;
 		} else if (relWindDeg < WindAndSailsConfig.NO_GO_ZONE_DEG) {
-			trimHint = "IN IRONS (Kąt martwy)";
+			trimHint = Component.translatable("hud.pw_wind_n_sails.trim.in_irons");
 			colorTrim = 0xFFFF5555; // Red
 		} else if (Math.abs(boat.getHeelAngle()) > 20.0F) {
 			if (boat.isHikeStanding()) {
-				trimHint = "PRZECHYŁ! Odpuść szot (S) / Ostrz (A/D)";
+				trimHint = Component.translatable("hud.pw_wind_n_sails.trim.heel_standing");
 			} else if (boat.isHikeSitting()) {
-				trimHint = "PRZECHYŁ! Wstań na burcie [Spacja x2] / Odpuść szot (S)";
+				trimHint = Component.translatable("hud.pw_wind_n_sails.trim.heel_sitting");
 			} else {
-				trimHint = "PRZECHYŁ! Balastuj (Spacja) / Odpuść szot (S)";
+				trimHint = Component.translatable("hud.pw_wind_n_sails.trim.heel_none");
 			}
 			colorTrim = 0xFFFF3333; // Bright Red
 		} else if (aoa <= 1.0F && relWindDeg <= 90.0F) {
-			trimHint = "Żagiel w łopocie (Wybieraj W)";
+			trimHint = Component.translatable("hud.pw_wind_n_sails.trim.luffing");
 			colorTrim = 0xFFAAAAAA; // Gray
 		} else if (aoa >= 7.0F && aoa <= 22.0F) {
-			trimHint = "Trym optymalny (Maks. ciąg)";
+			trimHint = Component.translatable("hud.pw_wind_n_sails.trim.optimal");
 			colorTrim = 0xFF55FF55; // Green
 		} else if (aoa > 24.0F) {
-			trimHint = "Przebrany (Odpuść S)";
+			trimHint = Component.translatable("hud.pw_wind_n_sails.trim.overtrimmed");
 			colorTrim = 0xFFFFAA00; // Orange
 		} else {
 			trimHint = pointOfSail;
@@ -123,18 +123,27 @@ public final class SailboatHudOverlay implements HudElement {
 		}
 
 		float rudder = boat.getRudderAngle();
-		String rudderStr = Math.abs(rudder) < 1.0F ? "Środek" : rudder < 0 ? String.format("Bakburta %.0f°", -rudder) : String.format("Sterburta %.0f°", rudder);
-		String sailStatus = boat.isSailFurled() ? "ZWINIĘTY [X]" : String.format("%d%% %s", sheetPct, barStr);
-		String hikeStatus;
+		Component rudderComponent = Math.abs(rudder) < 1.0F
+			? Component.translatable("hud.pw_wind_n_sails.rudder.center")
+			: rudder < 0
+				? Component.translatable("hud.pw_wind_n_sails.rudder.port", String.format("%.0f", -rudder))
+				: Component.translatable("hud.pw_wind_n_sails.rudder.starboard", String.format("%.0f", rudder));
+
+		Component sailStatus = boat.isSailFurled()
+			? Component.translatable("hud.pw_wind_n_sails.sail.furled")
+			: Component.translatable("hud.pw_wind_n_sails.sail.unfurled", sheetPct, barStr.toString());
+
+		Component hikeStatus;
 		if (boat.isHikeStanding()) {
-			hikeStatus = "§6Balast: Stoi na burcie§r";
+			hikeStatus = Component.translatable("hud.pw_wind_n_sails.hike_status.standing");
 		} else if (boat.isHikeSitting()) {
-			hikeStatus = "§aBalast: Siedzi na burcie§r";
+			hikeStatus = Component.translatable("hud.pw_wind_n_sails.hike_status.sitting");
 		} else {
-			hikeStatus = "§7Balast: Środek [Spacja]§r";
+			hikeStatus = Component.translatable("hud.pw_wind_n_sails.hike_status.center");
 		}
-		String sheetText = String.format("Szot: %s  |  Ster: %s  |  %s", sailStatus, rudderStr, hikeStatus);
-		String speedText = String.format("%.1f kn  |  %s  |  %s", speedKnots, pointOfSail, trimHint);
+
+		Component sheetLine = Component.translatable("hud.pw_wind_n_sails.hud.sheet_line", sailStatus, rudderComponent, hikeStatus);
+		Component speedLine = Component.translatable("hud.pw_wind_n_sails.hud.speed_line", String.format("%.1f", speedKnots), pointOfSail, trimHint);
 
 		int hudX = width / 2;
 		int hudY = height - 68;
@@ -143,7 +152,7 @@ public final class SailboatHudOverlay implements HudElement {
 		extractor.fill(hudX - 165, hudY - 4, hudX + 165, hudY + 22, 0x90000000);
 		extractor.outline(hudX - 165, hudY - 4, 330, 26, 0x40FFFFFF);
 
-		extractor.centeredText(font, Component.literal(sheetText), hudX, hudY, 0xFFFFFFFF);
-		extractor.centeredText(font, Component.literal(speedText), hudX, hudY + 11, colorTrim);
+		extractor.centeredText(font, sheetLine, hudX, hudY, 0xFFFFFFFF);
+		extractor.centeredText(font, speedLine, hudX, hudY + 11, colorTrim);
 	}
 }

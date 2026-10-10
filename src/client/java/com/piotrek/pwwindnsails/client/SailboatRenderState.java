@@ -9,6 +9,12 @@ public final class SailboatRenderState extends EntityRenderState {
 	public float rudderAngle;
 	public float speed;
 	public boolean sailFurled;
-	public int hurtTime;
+	public float hurtTime;
 	public float damage;
+	public final boolean[] cleatTied = new boolean[4];
+	public boolean holdingLead;
+	public int targetedCleat = -1;
+	/** White fenders hung on a side tied to the dock by both cleats. */
+	public boolean fenderPort;
+	public boolean fenderStarboard;
 }

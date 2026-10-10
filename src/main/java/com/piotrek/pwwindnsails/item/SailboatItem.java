@@ -39,6 +39,7 @@ public class SailboatItem extends Item {
 				SailboatEntity boat = new SailboatEntity(WindAndSailsMod.SAILBOAT_ENTITY, level);
 				boat.setPos(hitPos.x, hitPos.y + 0.1, hitPos.z);
 				boat.absSnapRotationTo(player.getYRot(), 0.0F);
+				boat.setSailFurled(true);
 				level.addFreshEntity(boat);
 				level.playSound(null, boat.getX(), boat.getY(), boat.getZ(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.BLOCKS, 1.0F, 1.0F);
 
