@@ -60,11 +60,6 @@ public final class WindAndSailsClient implements ClientModInitializer {
 		"main"
 	);
 
-	public static final ModelLayerLocation BUOY_LAYER = new ModelLayerLocation(
-		WindAndSailsMod.id("buoy"),
-		"main"
-	);
-
 	public static final ModelLayerLocation FLAGPOLE_FLAG_LAYER = new ModelLayerLocation(
 		WindAndSailsMod.id("flagpole_flag"),
 		"main"
@@ -72,21 +67,21 @@ public final class WindAndSailsClient implements ClientModInitializer {
 
 	public static final KeyMapping KEY_TOGGLE_WIND = new KeyMapping(
 		"key.pw_wind_n_sails.toggle_wind",
-		InputConstants.Type.KEYBOARD,
+		InputConstants.Type.KEYSYM,
 		InputConstants.KEY_TAB,
 		KeyMapping.Category.GAMEPLAY
 	);
 
 	public static final KeyMapping KEY_TOGGLE_SAIL = new KeyMapping(
 		"key.pw_wind_n_sails.toggle_sail",
-		InputConstants.Type.KEYBOARD,
+		InputConstants.Type.KEYSYM,
 		InputConstants.KEY_X,
 		KeyMapping.Category.GAMEPLAY
 	);
 
 	public static final KeyMapping KEY_TOGGLE_WIND_HUD = new KeyMapping(
 		"key.pw_wind_n_sails.toggle_wind_hud",
-		InputConstants.Type.KEYBOARD,
+		InputConstants.Type.KEYSYM,
 		InputConstants.KEY_H,
 		KeyMapping.Category.GAMEPLAY
 	);
@@ -109,9 +104,6 @@ public final class WindAndSailsClient implements ClientModInitializer {
 
 		EntityRendererRegistry.register(WindAndSailsMod.ANCHOR_ENTITY, AnchorRenderer::new);
 		ModelLayerRegistry.registerModelLayer(ANCHOR_LAYER, AnchorModel::createBodyLayer);
-
-		EntityRendererRegistry.register(WindAndSailsMod.BUOY_ENTITY, BuoyRenderer::new);
-		ModelLayerRegistry.registerModelLayer(BUOY_LAYER, BuoyModel::createBodyLayer);
 
 		// Block Entity Renderer & Model Layer
 		BlockEntityRendererRegistry.register(WindAndSailsMod.FLAGPOLE_BLOCK_ENTITY, FlagpoleBlockEntityRenderer::new);
@@ -160,11 +152,6 @@ public final class WindAndSailsClient implements ClientModInitializer {
 
 		// Client Tick Loop
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("xaeroworldmap")) {
-				com.piotrek.pwwindnsails.client.compat.xaero.XaeroWorldMapCompat.tryRegister();
-			}
-			com.piotrek.pwwindnsails.client.compat.xaero.BuoyTracker.tick(client);
-
 			boolean isInSailboat = client.player != null && client.player.getVehicle() instanceof SailboatEntity;
 			if (!wasInSailboat && isInSailboat) {
 				// Boarding sailboat: automatically enable wind HUD and water arrows!
@@ -195,22 +182,19 @@ public final class WindAndSailsClient implements ClientModInitializer {
 					MooringAim.Target aim = MooringAim.find(client.player, client.level, 1.0F);
 					if (aim != null && aim.cleat() && client.level.getEntity(aim.boatId()) instanceof SailboatEntity aimedBoat) {
 						boolean tied = aimedBoat.isCleatAttached(aim.cleatIndex());
-						Component cleatName = SailboatEntity.getCleatComponent(aim.cleatIndex());
-						Component action = holdsThrownAnchor && !tied
-							? Component.translatable("hud.pw_wind_n_sails.mooring.prompt_action.tie_anchor")
-							: (tied
-								? Component.translatable("hud.pw_wind_n_sails.mooring.prompt_action.untie")
-								: Component.translatable("hud.pw_wind_n_sails.mooring.prompt_action.tie"));
+						String action = holdsThrownAnchor && !tied
+							? " §f[PPM aby przywiązać kotwicę]"
+							: (tied ? " §e[PPM aby odwiązać]" : " §f[PPM aby przywiązać]");
 						client.player.sendOverlayMessage(
-							Component.translatable("hud.pw_wind_n_sails.mooring.prompt_cleat", cleatName, action)
+							Component.literal("§6[Cumowanie] §a⚓ " + SailboatEntity.getCleatName(aim.cleatIndex()) + action)
 						);
 					} else if (aim != null && aim.fence() != null && holdsLead && !holdsThrownAnchor) {
 						client.player.sendOverlayMessage(
-							Component.translatable("hud.pw_wind_n_sails.mooring.prompt_fence")
+							Component.literal("§6[Cumowanie] §a⚓ Słupek ogrodzenia §f[PPM aby połączyć cumę]")
 						);
 					} else if (holdsThrownAnchor) {
 						client.player.sendOverlayMessage(
-							Component.translatable("hud.pw_wind_n_sails.anchor.prompt_cleat")
+							Component.literal("§6[Kotwica]§r Kliknij PPM na zaznaczoną knagę, aby przywiązać kotwicę.")
 						);
 					}
 				}
@@ -221,7 +205,7 @@ public final class WindAndSailsClient implements ClientModInitializer {
 				if (client.player != null && !PlaneCompatHelper.isPlayerInPlaneOrParagliding(client.player)) {
 					WindHudOverlay.toggle();
 					client.player.sendOverlayMessage(
-						Component.translatable(WindHudOverlay.isVisible() ? "hud.pw_wind_n_sails.wind_hud.on" : "hud.pw_wind_n_sails.wind_hud.off")
+						Component.literal(WindHudOverlay.isVisible() ? "§b[Wiatr]§r HUD włączony" : "§7[Wiatr]§r HUD wyłączony")
 					);
 				}
 			}
@@ -235,11 +219,11 @@ public final class WindAndSailsClient implements ClientModInitializer {
 					if (client.player != null) {
 						if (enabled) {
 							client.player.sendOverlayMessage(
-								Component.translatable("hud.pw_wind_n_sails.visualizer.toggle_on", WindVisualizerRenderer.getSelectedStyle().getComponent())
+								Component.literal("§b[Strzałki wiatru TAB]§r WŁĄCZONE §a(" + WindVisualizerRenderer.getSelectedStyle().getDisplayName() + ")§r")
 							);
 						} else {
 							client.player.sendOverlayMessage(
-								Component.translatable("hud.pw_wind_n_sails.visualizer.toggle_off")
+								Component.literal("§7[Strzałki wiatru TAB]§r WYŁĄCZONE")
 							);
 						}
 					}
@@ -280,7 +264,7 @@ public final class WindAndSailsClient implements ClientModInitializer {
 						spaceTapTimer = 0;
 						boat.setHikeMode(SailboatEntity.HIKE_STAND);
 						client.player.sendOverlayMessage(
-							Component.translatable("hud.pw_wind_n_sails.hike.standing")
+							Component.literal("§6Balastowanie: Stanie na burcie [Maksymalne]§r")
 						);
 					} else {
 						// Single space tap:
@@ -289,13 +273,13 @@ public final class WindAndSailsClient implements ClientModInitializer {
 							targetHikeMode = SailboatEntity.HIKE_SIT;
 							boat.setHikeMode(SailboatEntity.HIKE_SIT);
 							client.player.sendOverlayMessage(
-								Component.translatable("hud.pw_wind_n_sails.hike.sitting")
+								Component.literal("§aBalastowanie: Siedzenie na burcie nawietrznej§r")
 							);
 						} else {
 							targetHikeMode = SailboatEntity.HIKE_NONE;
 							boat.setHikeMode(SailboatEntity.HIKE_NONE);
 							client.player.sendOverlayMessage(
-								Component.translatable("hud.pw_wind_n_sails.hike.center")
+								Component.literal("§7Balastowanie: Środek łódki§r")
 							);
 						}
 					}
@@ -326,20 +310,24 @@ public final class WindAndSailsClient implements ClientModInitializer {
 				.executes(ctx -> {
 					VisualizerMode cur = WindVisualizerRenderer.getSelectedStyle();
 					boolean enabled = WindVisualizerRenderer.isEnabled();
-					ctx.getSource().sendFeedback(Component.translatable(
-						"command.pw_wind_n_sails.windarrow.info",
-						cur.getComponent(),
-						Component.translatable(enabled ? "command.pw_wind_n_sails.enabled" : "command.pw_wind_n_sails.disabled"),
-						rootName
+					ctx.getSource().sendFeedback(Component.literal(
+						"§b[Strzałki wiatru]§r Wybrany styl: §e" + cur.getDisplayName() + "§r (" + (enabled ? "§aWŁĄCZONE§r" : "§cWYŁĄCZONE§r") + ")\n" +
+						"§7Zmień styl: §f/" + rootName + " <1..5 lub nazwa>§r\n" +
+						"§81. seafoam (Jasna piana morska - Biel)\n" +
+						"2. cyan    (Jasny błękit - Cyjan)\n" +
+						"3. amber   (Bursztynowy wiatr - Złoto)\n" +
+						"4. sky     (Subtelny błękit - Łagodny)\n" +
+						"5. shadow  (Ciemny cień wody - Grafit)§r\n" +
+						"§7Włączanie/wyłączanie w łódce: klawisz §eTAB§r."
 					));
 					return 1;
 				})
 				.then(ClientCommands.literal("toggle")
 					.executes(ctx -> {
 						boolean on = WindVisualizerRenderer.toggleSelected();
-						ctx.getSource().sendFeedback(Component.translatable(
-							on ? "command.pw_wind_n_sails.windarrow.toggled_on" : "command.pw_wind_n_sails.windarrow.toggled_off",
-							WindVisualizerRenderer.getSelectedStyle().getComponent()
+						ctx.getSource().sendFeedback(Component.literal(on
+							? "§b[Strzałki wiatru]§r WŁĄCZONE §a(" + WindVisualizerRenderer.getSelectedStyle().getDisplayName() + ")§r"
+							: "§7[Strzałki wiatru]§r WYŁĄCZONE"
 						));
 						return 1;
 					})
@@ -352,22 +340,22 @@ public final class WindAndSailsClient implements ClientModInitializer {
 						String input = StringArgumentType.getString(ctx, "style");
 						if ("toggle".equalsIgnoreCase(input)) {
 							boolean on = WindVisualizerRenderer.toggleSelected();
-							ctx.getSource().sendFeedback(Component.translatable(
-								on ? "command.pw_wind_n_sails.windarrow.toggled_on" : "command.pw_wind_n_sails.windarrow.toggled_off",
-								WindVisualizerRenderer.getSelectedStyle().getComponent()
+							ctx.getSource().sendFeedback(Component.literal(on
+								? "§b[Strzałki wiatru]§r WŁĄCZONE §a(" + WindVisualizerRenderer.getSelectedStyle().getDisplayName() + ")§r"
+								: "§7[Strzałki wiatru]§r WYŁĄCZONE"
 							));
 							return 1;
 						}
 						VisualizerMode mode = VisualizerMode.fromInput(input);
 						if (mode != null) {
 							WindVisualizerRenderer.setSelectedStyle(mode);
-							ctx.getSource().sendFeedback(Component.translatable(
-								"command.pw_wind_n_sails.windarrow.set", mode.getComponent()
+							ctx.getSource().sendFeedback(Component.literal(
+								"§b[Strzałki wiatru]§r Styl ustawiony na: §a" + mode.getDisplayName() + "§r. Włączanie/wyłączanie w łódce: klawisz §eTAB§r."
 							));
 							return 1;
 						} else {
-							ctx.getSource().sendError(Component.translatable(
-								"command.pw_wind_n_sails.windarrow.unknown", input
+							ctx.getSource().sendError(Component.literal(
+								"§cNieznany styl: " + input + ". Dostępne: 1..5, seafoam, cyan, amber, sky, shadow."
 							));
 							return 0;
 						}
@@ -383,10 +371,10 @@ public final class WindAndSailsClient implements ClientModInitializer {
 					.executes(ctx -> {
 						VisualizerMode cur = WindVisualizerRenderer.getSelectedStyle();
 						boolean enabled = WindVisualizerRenderer.isEnabled();
-						ctx.getSource().sendFeedback(Component.translatable(
-							"command.pw_wind_n_sails.windsails_arrow.info",
-							cur.getComponent(),
-							Component.translatable(enabled ? "command.pw_wind_n_sails.enabled" : "command.pw_wind_n_sails.disabled")
+						ctx.getSource().sendFeedback(Component.literal(
+							"§b[Strzałki wiatru]§r Wybrany styl: §e" + cur.getDisplayName() + "§r (" + (enabled ? "§aWŁĄCZONE§r" : "§cWYŁĄCZONE§r") + ")\n" +
+							"§7Użyj: §f/windsails arrow <1..5 lub nazwa>§r\n" +
+							"§81. seafoam, 2. cyan, 3. amber, 4. sky, 5. shadow§r"
 						));
 						return 1;
 					})
@@ -398,22 +386,22 @@ public final class WindAndSailsClient implements ClientModInitializer {
 							String input = StringArgumentType.getString(ctx, "style");
 							if ("toggle".equalsIgnoreCase(input)) {
 								boolean on = WindVisualizerRenderer.toggleSelected();
-								ctx.getSource().sendFeedback(Component.translatable(
-									on ? "command.pw_wind_n_sails.windarrow.toggled_on" : "command.pw_wind_n_sails.windarrow.toggled_off",
-									WindVisualizerRenderer.getSelectedStyle().getComponent()
+								ctx.getSource().sendFeedback(Component.literal(on
+									? "§b[Strzałki wiatru]§r WŁĄCZONE §a(" + WindVisualizerRenderer.getSelectedStyle().getDisplayName() + ")§r"
+									: "§7[Strzałki wiatru]§r WYŁĄCZONE"
 								));
 								return 1;
 							}
 							VisualizerMode mode = VisualizerMode.fromInput(input);
 							if (mode != null) {
 								WindVisualizerRenderer.setSelectedStyle(mode);
-								ctx.getSource().sendFeedback(Component.translatable(
-									"command.pw_wind_n_sails.windarrow.set", mode.getComponent()
+								ctx.getSource().sendFeedback(Component.literal(
+									"§b[Strzałki wiatru]§r Styl ustawiony na: §a" + mode.getDisplayName() + "§r. Włączanie/wyłączanie w łódce: klawisz §eTAB§r."
 								));
 								return 1;
 							} else {
-								ctx.getSource().sendError(Component.translatable(
-									"command.pw_wind_n_sails.windarrow.unknown", input
+								ctx.getSource().sendError(Component.literal(
+									"§cNieznany styl: " + input + ". Dostępne: 1..5, seafoam, cyan, amber, sky, shadow."
 								));
 								return 0;
 							}

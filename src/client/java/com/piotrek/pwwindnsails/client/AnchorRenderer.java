@@ -49,7 +49,8 @@ public final class AnchorRenderer extends EntityRenderer<AnchorEntity, AnchorRen
 			RenderTypes.entityCutout(TEXTURE),
 			state.lightCoords,
 			OverlayTexture.NO_OVERLAY,
-			state.outlineColor
+			state.outlineColor,
+			null
 		);
 		stack.popPose();
 	}

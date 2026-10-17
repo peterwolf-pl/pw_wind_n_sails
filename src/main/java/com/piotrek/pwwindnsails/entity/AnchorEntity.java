@@ -18,7 +18,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.InterpolationHandler;
 import net.minecraft.world.entity.Leashable;
-import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -33,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 public class AnchorEntity extends Entity implements Leashable {
 	private static final EntityDataAccessor<Boolean> ANCHORED = SynchedEntityData.defineId(AnchorEntity.class, EntityDataSerializers.BOOLEAN);
 
+	private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
 	@Nullable
 	private Leashable.LeashData leashData;
 	private boolean hitSeabedSoundPlayed = false;
@@ -44,8 +44,8 @@ public class AnchorEntity extends Entity implements Leashable {
 	}
 
 	@Override
-	protected InterpolationHandler createInterpolationHandler() {
-		return LinearInterpolationHandler.create(this, 3);
+	public InterpolationHandler getInterpolation() {
+		return this.interpolation;
 	}
 
 	@Override

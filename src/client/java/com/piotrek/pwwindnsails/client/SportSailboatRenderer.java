@@ -56,7 +56,7 @@ public final class SportSailboatRenderer extends EntityRenderer<SportSailboatEnt
 		super.submit(state, stack, collector, camera);
 
 		stack.pushPose();
-		stack.rotateDegrees(Axis.YP, 180.0F - state.yaw);
+		stack.mulPose(Axis.YP.rotationDegrees(180.0F - state.yaw));
 
 		// Cut the water surface out of the cockpit. Kept level, not heeled with the hull.
 		if (camera.fogType != FogType.WATER) {
@@ -67,21 +67,22 @@ public final class SportSailboatRenderer extends EntityRenderer<SportSailboatEnt
 				this.waterMask,
 				Unit.INSTANCE,
 				stack,
-				TEXTURE,
+				RenderTypes.waterMask(),
 				state.lightCoords,
 				OverlayTexture.NO_OVERLAY,
-				0
+				0,
+				null
 			);
 			stack.popPose();
 		}
 
 		// Heel (roll) opposite the wind side
-		stack.rotateDegrees(Axis.ZP, state.heel);
+		stack.mulPose(Axis.ZP.rotationDegrees(state.heel));
 
 		// Hurt shake
 		if (state.hurtTime > 0) {
 			float wobble = Mth.sin(state.hurtTime) * 3.0F;
-			stack.rotateDegrees(Axis.ZP, wobble);
+			stack.mulPose(Axis.ZP.rotationDegrees(wobble));
 		}
 
 		stack.scale(-1.0F, -1.0F, 1.0F);
@@ -95,7 +96,8 @@ public final class SportSailboatRenderer extends EntityRenderer<SportSailboatEnt
 			RenderTypes.entityCutout(TEXTURE),
 			state.lightCoords,
 			OverlayTexture.NO_OVERLAY,
-			state.outlineColor
+			state.outlineColor,
+			null
 		);
 		stack.popPose();
 	}

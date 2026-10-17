@@ -13,7 +13,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.material.FluidState;
@@ -56,10 +55,6 @@ public final class WindVisualizerRenderer {
 
 		public int getId() {
 			return this.id;
-		}
-
-		public Component getComponent() {
-			return Component.translatable("hud.pw_wind_n_sails.visualizer.mode." + this.alias);
 		}
 
 		public String getDisplayName() {

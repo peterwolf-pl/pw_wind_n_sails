@@ -123,7 +123,7 @@ public final class WindManager {
 		DailyWindProfile pNext = state.getNextDayProfile();
 		String forecast = (pCurrent != null && pNext != null)
 			? DailyWindProfile.generateForecast(dayTime, pCurrent, pNext)
-			: "hud.pw_wind_n_sails.wind_hud.forecast.default";
+			: "Stabilna pogoda";
 
 		return new WindSyncPayload(
 			state.getBaseDirectionDeg(),

@@ -84,16 +84,6 @@ public final class WindAndSailsMod implements ModInitializer {
 			.build(ANCHOR_KEY)
 	);
 
-	public static final ResourceKey<EntityType<?>> BUOY_KEY = ResourceKey.create(Registries.ENTITY_TYPE, id("buoy"));
-	public static final EntityType<com.piotrek.pwwindnsails.entity.BuoyEntity> BUOY_ENTITY = Registry.register(
-		BuiltInRegistries.ENTITY_TYPE,
-		BUOY_KEY,
-		EntityType.Builder.of(com.piotrek.pwwindnsails.entity.BuoyEntity::new, MobCategory.MISC)
-			.sized(0.75F, 0.8F)
-			.clientTrackingRange(10)
-			.build(BUOY_KEY)
-	);
-
 	// Item Registration
 	public static final ResourceKey<Item> SAILBOAT_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("sailboat"));
 	public static final SailboatItem SAILBOAT_ITEM = Registry.register(
@@ -114,26 +104,6 @@ public final class WindAndSailsMod implements ModInitializer {
 		BuiltInRegistries.ITEM,
 		ANCHOR_ITEM_KEY,
 		new com.piotrek.pwwindnsails.item.AnchorItem(new Item.Properties().setId(ANCHOR_ITEM_KEY).stacksTo(16))
-	);
-
-	public static final ResourceKey<Item> BUOY_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("buoy"));
-	public static final com.piotrek.pwwindnsails.item.BuoyItem BUOY_ITEM = Registry.register(
-		BuiltInRegistries.ITEM,
-		BUOY_ITEM_KEY,
-		new com.piotrek.pwwindnsails.item.BuoyItem(
-			com.piotrek.pwwindnsails.entity.BuoyEntity.TYPE_RED_SPHERICAL,
-			new Item.Properties().setId(BUOY_ITEM_KEY).stacksTo(16)
-		)
-	);
-
-	public static final ResourceKey<Item> CYLINDRICAL_BUOY_ITEM_KEY = ResourceKey.create(Registries.ITEM, id("cylindrical_buoy"));
-	public static final com.piotrek.pwwindnsails.item.BuoyItem CYLINDRICAL_BUOY_ITEM = Registry.register(
-		BuiltInRegistries.ITEM,
-		CYLINDRICAL_BUOY_ITEM_KEY,
-		new com.piotrek.pwwindnsails.item.BuoyItem(
-			com.piotrek.pwwindnsails.entity.BuoyEntity.TYPE_BLUE_CYLINDRICAL,
-			new Item.Properties().setId(CYLINDRICAL_BUOY_ITEM_KEY).stacksTo(16)
-		)
 	);
 
 	// Block & BlockEntity Registration
@@ -186,8 +156,6 @@ public final class WindAndSailsMod implements ModInitializer {
 			output.accept(SAILBOAT_ITEM);
 			output.accept(SPORT_SAILBOAT_ITEM);
 			output.accept(ANCHOR_ITEM);
-			output.accept(BUOY_ITEM);
-			output.accept(CYLINDRICAL_BUOY_ITEM);
 			output.accept(FLAGPOLE_ITEM);
 		})
 		.build();
@@ -253,7 +221,7 @@ public final class WindAndSailsMod implements ModInitializer {
 			if (hand != InteractionHand.MAIN_HAND) {
 				return InteractionResult.PASS;
 			}
-			if (!(entity instanceof SailboatEntity) && !(entity instanceof LeashFenceKnotEntity) && !(entity instanceof com.piotrek.pwwindnsails.entity.BuoyEntity)) {
+			if (!(entity instanceof SailboatEntity) && !(entity instanceof LeashFenceKnotEntity)) {
 				return InteractionResult.PASS;
 			}
 			// Boat pick-radius and a neighboring knot must not steal the highlighted post or cleat.
