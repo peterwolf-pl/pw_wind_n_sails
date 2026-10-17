@@ -138,12 +138,24 @@ public final class MooringAim {
 		Vec3 end = eye.add(look.scale(REACH));
 		double dist = boxDistance(eye, end, postColumn(fence).inflate(0.08));
 		if (dist > REACH) {
-			Optional<LeashFenceKnotEntity> knot = LeashFenceKnotEntity.getKnot(player.level(), fence);
+			Optional<LeashFenceKnotEntity> knot = getKnot(player.level(), fence);
 			if (knot.isPresent()) {
 				dist = boxDistance(eye, end, knot.get().getBoundingBox().inflate(0.08));
 			}
 		}
 		return dist <= REACH ? new Target(false, -1, -1, fence, dist) : null;
+	}
+
+	public static Optional<LeashFenceKnotEntity> getKnot(net.minecraft.world.level.Level level, BlockPos pos) {
+		int x = pos.getX();
+		int y = pos.getY();
+		int z = pos.getZ();
+		for (LeashFenceKnotEntity knot : level.getEntitiesOfClass(LeashFenceKnotEntity.class, new AABB(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1))) {
+			if (pos.equals(knot.getPos())) {
+				return Optional.of(knot);
+			}
+		}
+		return Optional.empty();
 	}
 
 	public static AABB postColumn(BlockPos pos) {

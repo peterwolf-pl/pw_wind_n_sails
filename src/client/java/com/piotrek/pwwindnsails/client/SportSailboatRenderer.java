@@ -4,12 +4,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.piotrek.pwwindnsails.WindAndSailsMod;
 import com.piotrek.pwwindnsails.entity.SportSailboatEntity;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -56,10 +57,10 @@ public final class SportSailboatRenderer extends EntityRenderer<SportSailboatEnt
 		super.submit(state, stack, collector, camera);
 
 		stack.pushPose();
-		stack.rotateDegrees(Axis.YP, 180.0F - state.yaw);
+		stack.mulPose(Axis.YP.rotationDegrees(180.0F - state.yaw));
 
 		// Cut the water surface out of the cockpit. Kept level, not heeled with the hull.
-		if (camera.fogType != FogType.WATER) {
+		if (Minecraft.getInstance().gameRenderer.getMainCamera().getFluidInCamera() != FogType.WATER) {
 			stack.pushPose();
 			stack.scale(-1.0F, -1.0F, 1.0F);
 			stack.translate(0.0F, -1.5F, 0.0F);
@@ -67,21 +68,22 @@ public final class SportSailboatRenderer extends EntityRenderer<SportSailboatEnt
 				this.waterMask,
 				Unit.INSTANCE,
 				stack,
-				TEXTURE,
+				RenderTypes.waterMask(),
 				state.lightCoords,
 				OverlayTexture.NO_OVERLAY,
-				0
+				0,
+				null
 			);
 			stack.popPose();
 		}
 
 		// Heel (roll) opposite the wind side
-		stack.rotateDegrees(Axis.ZP, state.heel);
+		stack.mulPose(Axis.ZP.rotationDegrees(state.heel));
 
 		// Hurt shake
 		if (state.hurtTime > 0) {
 			float wobble = Mth.sin(state.hurtTime) * 3.0F;
-			stack.rotateDegrees(Axis.ZP, wobble);
+			stack.mulPose(Axis.ZP.rotationDegrees(wobble));
 		}
 
 		stack.scale(-1.0F, -1.0F, 1.0F);
@@ -95,7 +97,8 @@ public final class SportSailboatRenderer extends EntityRenderer<SportSailboatEnt
 			RenderTypes.entityCutout(TEXTURE),
 			state.lightCoords,
 			OverlayTexture.NO_OVERLAY,
-			state.outlineColor
+			state.outlineColor,
+			null
 		);
 		stack.popPose();
 	}

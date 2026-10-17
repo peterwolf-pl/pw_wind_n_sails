@@ -18,7 +18,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.InterpolationHandler;
 import net.minecraft.world.entity.Leashable;
-import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -33,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 public class AnchorEntity extends Entity implements Leashable {
 	private static final EntityDataAccessor<Boolean> ANCHORED = SynchedEntityData.defineId(AnchorEntity.class, EntityDataSerializers.BOOLEAN);
 
+	private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
 	@Nullable
 	private Leashable.LeashData leashData;
 	private boolean hitSeabedSoundPlayed = false;
@@ -44,8 +44,8 @@ public class AnchorEntity extends Entity implements Leashable {
 	}
 
 	@Override
-	protected InterpolationHandler createInterpolationHandler() {
-		return LinearInterpolationHandler.create(this, 3);
+	public InterpolationHandler getInterpolation() {
+		return this.interpolation;
 	}
 
 	@Override
@@ -71,7 +71,7 @@ public class AnchorEntity extends Entity implements Leashable {
 	}
 
 	@Override
-	public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+	public InteractionResult interact(Player player, InteractionHand hand) {
 		if (!this.level().isClientSide()) {
 			// Retrieve anchor: pick up back to inventory or drop
 			ItemStack anchorStack = new ItemStack(WindAndSailsMod.ANCHOR_ITEM);
@@ -85,6 +85,11 @@ public class AnchorEntity extends Entity implements Leashable {
 			return InteractionResult.SUCCESS;
 		}
 		return InteractionResult.SUCCESS;
+	}
+
+	@Override
+	public InteractionResult interactAt(Player player, Vec3 location, InteractionHand hand) {
+		return this.interact(player, hand);
 	}
 
 	@Override

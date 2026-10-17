@@ -8,12 +8,11 @@ import com.piotrek.pwwindnsails.wind.WindGust;
 import com.piotrek.pwwindnsails.wind.WindManager;
 import com.piotrek.pwwindnsails.wind.WindState;
 import com.piotrek.pwwindnsails.wind.WindVector;
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.material.FluidState;
@@ -56,10 +55,6 @@ public final class WindVisualizerRenderer {
 
 		public int getId() {
 			return this.id;
-		}
-
-		public Component getComponent() {
-			return Component.translatable("hud.pw_wind_n_sails.visualizer.mode." + this.alias);
 		}
 
 		public String getDisplayName() {
@@ -160,7 +155,7 @@ public final class WindVisualizerRenderer {
 		return currentMode;
 	}
 
-	public static void render(LevelRenderContext context) {
+	public static void render(WorldRenderContext context) {
 		if (!currentMode.isEnabled()) {
 			return;
 		}
@@ -174,7 +169,7 @@ public final class WindVisualizerRenderer {
 			return;
 		}
 
-		Vec3 camPos = context.levelState().cameraRenderState.pos;
+		Vec3 camPos = context.worldState().cameraRenderState.pos;
 		if (camPos == null) {
 			return;
 		}
@@ -209,7 +204,7 @@ public final class WindVisualizerRenderer {
 		int playerY = Mth.floor(camPos.y);
 		int playerZ = Mth.floor(camPos.z);
 
-		PoseStack poseStack = context.poseStack();
+		PoseStack poseStack = context.matrices();
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
 		float alphaFactor = Mth.clamp((windStr - 0.04F) / 0.12F, 0.0F, 1.0F);
@@ -225,7 +220,7 @@ public final class WindVisualizerRenderer {
 		float hw = width * 0.5F;
 		float headLen = arrowLength * 0.32F;
 
-		context.submitNodeCollector().submitCustomGeometry(
+		context.commandQueue().submitCustomGeometry(
 			poseStack,
 			RenderTypes.debugQuads(),
 			(pose, consumer) -> {

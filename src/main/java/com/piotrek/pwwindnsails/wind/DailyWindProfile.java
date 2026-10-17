@@ -1,6 +1,5 @@
 package com.piotrek.pwwindnsails.wind;
 
-import java.util.Locale;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 
@@ -182,47 +181,47 @@ public record DailyWindProfile(
 	public static String generateForecast(long dayTime, DailyWindProfile pCurrent, DailyWindProfile pNext) {
 		int timeOfDay = (int) Math.floorMod(dayTime, 24000L);
 		String nextDirStr = getCompassDirection(pNext.prevailingDirectionDeg());
-		String nextKnotsStr = String.format(Locale.ROOT, "%.0f", pNext.baseStrength() * 38.87);
+		double nextKnots = pNext.baseStrength() * 38.87;
 
 		if (timeOfDay < 12000) {
 			// Daytime
 			if (pCurrent.dayType() == WindDayType.CALM) {
 				return pNext.dayType() == WindDayType.CALM
-					? "hud.pw_wind_n_sails.wind_hud.forecast.day.calm_persist"
-					: "hud.pw_wind_n_sails.wind_hud.forecast.day.calm_breeze;" + nextDirStr + ";" + nextKnotsStr;
+					? "Cisza utrzyma się do jutra"
+					: String.format("Flauta; o świcie powiew z %s (~%.0f kn)", nextDirStr, nextKnots);
 			}
 			if (pNext.dayType() == WindDayType.CALM) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.day.calm_coming";
+				return "Uwaga: nadchodzi flauta, jutro cisza";
 			}
 			if (pCurrent.windyNight()) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.day.windy_night;" + nextDirStr + ";" + nextKnotsStr;
+				return String.format("W nocy wiatr nie osłabnie; jutro %s (~%.0f kn)", nextDirStr, nextKnots);
 			}
 			if (pNext.dayType() == WindDayType.GUSTY_WIND || pNext.dayType() == WindDayType.STORMY_GALE) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.day.gusty_tomorrow;" + nextDirStr + ";" + nextKnotsStr;
+				return String.format("Po zmroku spokój; jutro szkwały z %s (~%.0f kn)", nextDirStr, nextKnots);
 			}
-			return "hud.pw_wind_n_sails.wind_hud.forecast.day.easing_tomorrow;" + nextDirStr + ";" + nextKnotsStr;
+			return String.format("Po zmroku osłabienie wiatru; jutro z %s (~%.0f kn)", nextDirStr, nextKnots);
 		} else if (timeOfDay < 18000) {
 			// Evening / Dusk
 			if (pNext.dayType() == WindDayType.CALM) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.evening.calm_tomorrow";
+				return "Wiatr powoli cichnie; jutro flauta";
 			}
 			if (pNext.dayType() == WindDayType.STORMY_GALE) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.evening.gale_warning;" + nextDirStr + ";" + nextKnotsStr;
+				return String.format("Ostrzeżenie: o świcie wichura z %s (~%.0f kn)", nextDirStr, nextKnots);
 			}
 			float dirDiff = Math.abs(Mth.wrapDegrees(pNext.prevailingDirectionDeg() - pCurrent.prevailingDirectionDeg()));
 			if (dirDiff > 50.0F) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.evening.veering_dawn;" + nextDirStr + ";" + nextKnotsStr;
+				return String.format("W nocy spokojnie; o świcie skręt na %s (~%.0f kn)", nextDirStr, nextKnots);
 			}
-			return "hud.pw_wind_n_sails.wind_hud.forecast.evening.steady_night;" + nextDirStr + ";" + nextKnotsStr;
+			return String.format("Równy wiatr nocny; jutro z %s (~%.0f kn)", nextDirStr, nextKnots);
 		} else {
 			// Late night / Dawn
 			if (pNext.dayType() == WindDayType.CALM) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.night.dawn_calm";
+				return "Wiatr gaśnie – o świcie flauta";
 			}
 			if (pNext.dayType() == WindDayType.GUSTY_WIND || pNext.dayType() == WindDayType.STORMY_GALE) {
-				return "hud.pw_wind_n_sails.wind_hud.forecast.night.dawn_gusts;" + nextDirStr + ";" + nextKnotsStr;
+				return String.format("O świcie nasilenie szkwałów z %s (~%.0f kn)", nextDirStr, nextKnots);
 			}
-			return "hud.pw_wind_n_sails.wind_hud.forecast.night.dawn_settling;" + nextDirStr + ";" + nextKnotsStr;
+			return String.format("O świcie wiatr ustali się z %s (~%.0f kn)", nextDirStr, nextKnots);
 		}
 	}
 

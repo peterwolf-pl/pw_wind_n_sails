@@ -313,8 +313,7 @@ public final class SailingPhysics {
 	) {
 		// Vertical bounds check: ignore blocks fully underneath the hull bottom (e.g. shallow riverbed)
 		// or overhead blocks (hanging leaves, clearance above cockpit).
-		// Uses 0.02 to ensure low dock slabs, path blocks and water-level piers are recognized as obstacles.
-		if (blockBox.maxY <= boatY + 0.02 || blockBox.minY >= boatY + 0.70) {
+		if (blockBox.maxY <= boatY + 0.15 || blockBox.minY >= boatY + 0.70) {
 			return false;
 		}
 

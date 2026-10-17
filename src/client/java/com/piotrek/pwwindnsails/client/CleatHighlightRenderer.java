@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.piotrek.pwwindnsails.entity.AnchorEntity;
 import com.piotrek.pwwindnsails.entity.MooringAim;
 import com.piotrek.pwwindnsails.entity.SailboatEntity;
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -27,7 +27,7 @@ import java.util.List;
 public final class CleatHighlightRenderer {
 	private CleatHighlightRenderer() {}
 
-	public static void render(LevelRenderContext context) {
+	public static void render(WorldRenderContext context) {
 		try {
 			Minecraft client = Minecraft.getInstance();
 			Player player = client.player;
@@ -56,20 +56,20 @@ public final class CleatHighlightRenderer {
 				return;
 			}
 
-			Vec3 camPos = context.levelState().cameraRenderState.pos;
+			Vec3 camPos = context.worldState().cameraRenderState.pos;
 			if (camPos == null) {
 				return;
 			}
 
 			float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(true);
-			PoseStack poseStack = context.poseStack();
+			PoseStack poseStack = context.matrices();
 
 			MooringAim.Target aim = MooringAim.find(player, level, partialTick);
 			if (aim == null) {
 				return;
 			}
 
-			context.submitNodeCollector().submitCustomGeometry(
+			context.commandQueue().submitCustomGeometry(
 				poseStack,
 				RenderTypes.lines(),
 				(pose, consumer) -> {
@@ -84,7 +84,7 @@ public final class CleatHighlightRenderer {
 					}
 					// Post column only — not the rails that run into the next fence.
 					drawAabbEdges(pose, consumer, MooringAim.postColumn(aim.fence()).move(-camPos.x, -camPos.y, -camPos.z), 160);
-					LeashFenceKnotEntity.getKnot(level, aim.fence()).ifPresent(knot ->
+					MooringAim.getKnot(level, aim.fence()).ifPresent(knot ->
 						drawAabbEdges(pose, consumer, knot.getBoundingBox().move(-camPos.x, -camPos.y, -camPos.z), 160)
 					);
 				}

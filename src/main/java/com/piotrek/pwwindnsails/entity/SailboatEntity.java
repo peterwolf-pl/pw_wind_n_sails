@@ -25,7 +25,6 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.InterpolationHandler;
 import net.minecraft.world.entity.Leashable;
-import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Pose;
@@ -122,6 +121,7 @@ public class SailboatEntity extends Entity implements Leashable {
 	private float mooringSway;
 
 	@Nullable
+	private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
 	private Leashable.LeashData leashData;
 
 	public SailboatEntity(EntityType<? extends SailboatEntity> type, Level level) {
@@ -130,8 +130,8 @@ public class SailboatEntity extends Entity implements Leashable {
 	}
 
 	@Override
-	protected InterpolationHandler createInterpolationHandler() {
-		return LinearInterpolationHandler.create(this, 3);
+	public InterpolationHandler getInterpolation() {
+		return this.interpolation;
 	}
 
 	@Override
@@ -221,7 +221,12 @@ public class SailboatEntity extends Entity implements Leashable {
 	}
 
 	@Override
-	public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+	public InteractionResult interactAt(Player player, Vec3 location, InteractionHand hand) {
+		return this.interact(player, hand);
+	}
+
+	@Override
+	public InteractionResult interact(Player player, InteractionHand hand) {
 		// Only the looked-at cleat wire or fence post. Hull clicks must not select a neighbor cleat.
 		if (handleAimedMooringClick(player)) {
 			return InteractionResult.SUCCESS;
@@ -757,7 +762,7 @@ public class SailboatEntity extends Entity implements Leashable {
 			for (AABB box : shape.toAabbs()) {
 				double top = y + box.maxY;
 				double bottom = y + box.minY;
-				if (top > this.getY() + 0.02 && bottom < this.getY() + 0.9) {
+				if (top > this.getY() + 0.15 && bottom < this.getY() + 0.9) {
 					return true;
 				}
 			}
@@ -1396,8 +1401,6 @@ public class SailboatEntity extends Entity implements Leashable {
 					anchor.discard();
 					this.spawnAtLocation((ServerLevel) this.level(), new ItemStack(WindAndSailsMod.ANCHOR_ITEM));
 				}
-			} else if (holder instanceof com.piotrek.pwwindnsails.entity.BuoyEntity buoy) {
-				buoy.dropLeash();
 			} else if (holder instanceof LeashFenceKnotEntity knot) {
 				knot.notifyLeasheeRemoved(this);
 			}
@@ -1420,16 +1423,6 @@ public class SailboatEntity extends Entity implements Leashable {
 		if (!anyTied) {
 			this.leashData = null;
 		}
-	}
-
-	public static Component getCleatComponent(int cleatIndex) {
-		return switch (cleatIndex) {
-			case CLEAT_BOW_PORT -> Component.translatable("hud.pw_wind_n_sails.cleat.bow_port");
-			case CLEAT_BOW_STARBOARD -> Component.translatable("hud.pw_wind_n_sails.cleat.bow_starboard");
-			case CLEAT_STERN_PORT -> Component.translatable("hud.pw_wind_n_sails.cleat.stern_port");
-			case CLEAT_STERN_STARBOARD -> Component.translatable("hud.pw_wind_n_sails.cleat.stern_starboard");
-			default -> Component.translatable("hud.pw_wind_n_sails.cleat.generic", cleatIndex);
-		};
 	}
 
 	public static String getCleatName(int cleatIndex) {
@@ -1462,8 +1455,9 @@ public class SailboatEntity extends Entity implements Leashable {
 		this.level().playSound(null, spawnPos.x, spawnPos.y, spawnPos.z,
 			SoundEvents.LEAD_TIED, SoundSource.PLAYERS, 1.0F, 1.0F);
 
-		player.sendOverlayMessage(
-			Component.translatable("hud.pw_wind_n_sails.anchor.dropped")
+		player.displayClientMessage(
+			Component.literal("§6[Kotwica]§r Kotwica wrzucona do wody i opada na dno! Kliknij PPM na wybraną knagę, by ją przywiązać."),
+			true
 		);
 	}
 
@@ -1736,11 +1730,11 @@ public class SailboatEntity extends Entity implements Leashable {
 	}
 
 	private static boolean interactHighlightedCleat(Player player, SailboatEntity boat, int cleat) {
-		Component cleatName = getCleatComponent(cleat);
+		String name = getCleatName(cleat);
 		if (boat.isCleatAttached(cleat)) {
 			if (!player.level().isClientSide()) {
 				boat.detachCleat(cleat, true);
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.cleat_untied", cleatName));
+				player.displayClientMessage(Component.literal("§e[Cumowanie]§r Odwiązano cumę z knagi: §f" + name + "§r."), true);
 			}
 			return true;
 		}
@@ -1752,7 +1746,7 @@ public class SailboatEntity extends Entity implements Leashable {
 				shrinkLead(player);
 				player.level().playSound(null, boat.getX(), boat.getY(), boat.getZ(),
 					SoundEvents.LEAD_TIED, SoundSource.PLAYERS, 1.0F, 1.0F);
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.anchor.tied_to_cleat", cleatName));
+				player.displayClientMessage(Component.literal("§6[Kotwica]§r Kotwica przywiązana do knagi: §f" + name + "§r."), true);
 			}
 			return true;
 		}
@@ -1764,7 +1758,7 @@ public class SailboatEntity extends Entity implements Leashable {
 				boat.attachCleat(cleat, knot);
 				shrinkLead(player);
 				knot.playPlacementSound();
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.post_tied_to_cleat", cleatName));
+				player.displayClientMessage(Component.literal("§a[Cumowanie]§r Przywiązano cumę ze słupka do knagi: §f" + name + "§r!"), true);
 			}
 			return true;
 		}
@@ -1774,14 +1768,14 @@ public class SailboatEntity extends Entity implements Leashable {
 				((Leashable) entity).removeLeash();
 				boat.attachCleat(cleat, entity);
 				shrinkLead(player);
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.tied_to_cleat", cleatName));
+				player.displayClientMessage(Component.literal("§a[Cumowanie]§r Przywiązano cumę do knagi: §f" + name + "§r!"), true);
 			}
 			return true;
 		}
 		if (player.getMainHandItem().is(Items.LEAD) || player.getOffhandItem().is(Items.LEAD)) {
 			if (!player.level().isClientSide()) {
 				boat.attachCleat(cleat, player);
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.cleat_selected", cleatName));
+				player.displayClientMessage(Component.literal("§b[Cumowanie]§r Wybrano knagę: §f" + name + "§r. Teraz kliknij PPM na zaznaczony słupek."), true);
 			}
 			return true;
 		}
@@ -1797,14 +1791,14 @@ public class SailboatEntity extends Entity implements Leashable {
 				}
 				if (!player.level().isClientSide()) {
 					boat.detachCleat(i, true);
-					player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.post_untied", getCleatComponent(i)));
+					player.displayClientMessage(Component.literal("§e[Cumowanie]§r Odwiązano cumę ze słupka: §f" + getCleatName(i) + "§r."), true);
 				}
 				return true;
 			}
 		}
 		if (AnchorEntity.findHeldBy(player) != null && findCleatHeldBy(player) == null && !hasVanillaBoatLeashed(player)) {
 			if (!player.level().isClientSide()) {
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.anchor.prompt_cleat"));
+				player.displayClientMessage(Component.literal("§6[Kotwica]§r Kliknij PPM na zaznaczoną knagę, aby przywiązać kotwicę."), true);
 			}
 			return true;
 		}
@@ -1815,7 +1809,7 @@ public class SailboatEntity extends Entity implements Leashable {
 				LeashFenceKnotEntity knot = LeashFenceKnotEntity.getOrCreateKnot((ServerLevel) player.level(), fence);
 				held.boat().attachCleat(held.index(), knot);
 				knot.playPlacementSound();
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.cleat_tied_to_post", getCleatComponent(held.index())));
+				player.displayClientMessage(Component.literal("§a[Cumowanie]§r Cumę (" + getCleatName(held.index()) + ") przywiązano do słupka!"), true);
 			}
 			return true;
 		}
@@ -1826,7 +1820,7 @@ public class SailboatEntity extends Entity implements Leashable {
 			if (!player.level().isClientSide()) {
 				LeashFenceKnotEntity.getOrCreateKnot((ServerLevel) player.level(), fence).playPlacementSound();
 				WindAndSailsMod.setPendingFenceMooring(player.getUUID(), fence);
-				player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.post_selected"));
+				player.displayClientMessage(Component.literal("§b[Cumowanie]§r Wybrano słupek. Kliknij PPM na zaznaczoną knagę."), true);
 			}
 			return true;
 		}
@@ -1856,7 +1850,7 @@ public class SailboatEntity extends Entity implements Leashable {
 		if (player.level().isClientSide()) {
 			return true;
 		}
-		boolean existed = LeashFenceKnotEntity.getKnot(player.level(), fence).isPresent();
+		boolean existed = MooringAim.getKnot(player.level(), fence).isPresent();
 		LeashFenceKnotEntity knot = LeashFenceKnotEntity.getOrCreateKnot((ServerLevel) player.level(), fence);
 		boolean any = false;
 		boolean tooFar = false;
@@ -1872,14 +1866,14 @@ public class SailboatEntity extends Entity implements Leashable {
 			knot.playPlacementSound();
 			player.level().playSound(null, knot.getX(), knot.getY(), knot.getZ(),
 				SoundEvents.LEAD_TIED, SoundSource.PLAYERS, 1.0F, 1.0F);
-			player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.tied_to_fence"));
+			player.displayClientMessage(Component.literal("§a[Cumowanie]§r Przywiązano łódkę do słupka."), true);
 			return true;
 		}
 		if (!existed) {
 			knot.discard();
 		}
 		if (tooFar) {
-			player.sendOverlayMessage(Component.translatable("hud.pw_wind_n_sails.mooring.too_far"));
+			player.displayClientMessage(Component.literal("§e[Cumowanie]§r Łódka jest za daleko od słupka, żeby założyć linę."), true);
 		}
 		return false;
 	}
@@ -1896,9 +1890,9 @@ public class SailboatEntity extends Entity implements Leashable {
 		return holder instanceof LeashFenceKnotEntity knotEntity && fence.equals(knotEntity.getPos());
 	}
 
-	public record HeldCleat(SailboatEntity boat, int index) {}
+	private record HeldCleat(SailboatEntity boat, int index) {}
 
-	public static HeldCleat findCleatHeldBy(Player player) {
+	private static HeldCleat findCleatHeldBy(Player player) {
 		AABB area = player.getBoundingBox().inflate(24.0);
 		for (SailboatEntity boat : player.level().getEntitiesOfClass(SailboatEntity.class, area)) {
 			for (int i = 0; i < CLEAT_COUNT; i++) {
@@ -1911,7 +1905,7 @@ public class SailboatEntity extends Entity implements Leashable {
 		return null;
 	}
 
-	public static void shrinkLead(Player player) {
+	private static void shrinkLead(Player player) {
 		if (player.getAbilities().instabuild) {
 			return;
 		}
@@ -1952,7 +1946,7 @@ public class SailboatEntity extends Entity implements Leashable {
 			mpos.set(Mth.floor(px), Mth.floor(boatPos.y + 0.2), Mth.floor(pz));
 
 			BlockState state = this.level().getBlockState(mpos);
-			if (!state.isAir() && !this.level().getFluidState(mpos).is(FluidTags.WATER) && !state.getCollisionShape(this.level(), mpos).isEmpty()) {
+			if (!state.isAir() && !this.level().getFluidState(mpos).is(FluidTags.WATER) && state.isSolidRender()) {
 				double pushX = -Math.cos(rad);
 				double pushZ = -Math.sin(rad);
 				repulsion = repulsion.add(pushX * 0.08, 0.0, pushZ * 0.08);

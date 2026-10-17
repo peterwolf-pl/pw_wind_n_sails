@@ -12,7 +12,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
@@ -85,13 +85,13 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 		stack.translate(0.5D, -0.02D, 0.5D);
 
 		// Stream downwind. Yaw 0 in this space is +X, which is world yaw 270.
-		stack.rotateDegrees(Axis.YP, 270.0F - state.windDirectionDeg);
+		stack.mulPose(Axis.YP.rotationDegrees(270.0F - state.windDirectionDeg));
 
 		// Light wind keeps the hoist panel only slightly down, so the outer
 		// panels can fall to half the previous panel's height. Strong wind flies flat.
 		float windFactor = Mth.clamp((state.windStrength - 0.18F) / 0.40F, 0.0F, 1.0F);
 		float droopPitch = Mth.lerp(windFactor, 18.0F, 1.0F);
-		stack.rotateDegrees(Axis.ZP, -droopPitch);
+		stack.mulPose(Axis.ZP.rotationDegrees(-droopPitch));
 
 		this.model.setupAnim(state);
 
@@ -103,8 +103,7 @@ public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<Fl
 			state.lightCoords,
 			OverlayTexture.NO_OVERLAY,
 			state.tint,
-			null,
-			0
+			null
 		);
 
 		stack.popPose();

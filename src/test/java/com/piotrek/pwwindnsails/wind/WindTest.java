@@ -187,19 +187,11 @@ public class WindTest {
 		String daytimeForecast = DailyWindProfile.generateForecast(6000L, pCurrent, pNext);
 		assertNotNull(daytimeForecast);
 		assertFalse(daytimeForecast.isEmpty());
-		assertTrue(daytimeForecast.startsWith("hud.pw_wind_n_sails.wind_hud.forecast."));
 
 		// Evening forecast
 		String eveningForecast = DailyWindProfile.generateForecast(15000L, pCurrent, pNext);
 		assertNotNull(eveningForecast);
 		assertFalse(eveningForecast.isEmpty());
-		assertTrue(eveningForecast.startsWith("hud.pw_wind_n_sails.wind_hud.forecast."));
-
-		// Forecast component parser test
-		net.minecraft.network.chat.Component parsed = com.piotrek.pwwindnsails.client.WindHudOverlay.parseForecastComponent(daytimeForecast);
-		assertNotNull(parsed);
-		net.minecraft.network.chat.Component defaultParsed = com.piotrek.pwwindnsails.client.WindHudOverlay.parseForecastComponent(null);
-		assertEquals("hud.pw_wind_n_sails.wind_hud.forecast.default", defaultParsed.getString());
 
 		// Client sync test
 		WindManager manager = WindManager.getInstance();

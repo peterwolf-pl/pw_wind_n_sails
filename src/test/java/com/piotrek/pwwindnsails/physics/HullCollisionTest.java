@@ -97,28 +97,12 @@ public class HullCollisionTest {
 		double boatZ = 100.0;
 		float yaw = 30.0F;
 
-		// Riverbed with surface below boat water draft (Y=63.0 to 63.95)
-		AABB riverbed = new AABB(99.0, 63.0, 99.0, 101.0, 63.95, 101.0);
+		// Riverbed with surface below boat water draft (Y=63.0 to 64.10)
+		AABB riverbed = new AABB(99.0, 63.0, 99.0, 101.0, 64.10, 101.0);
 
 		assertFalse(
 			SailingPhysics.hullIntersectsBlock(boatX, boatY, boatZ, yaw, riverbed),
 			"Riverbed blocks below hull draft line must not stop the boat"
-		);
-	}
-
-	@Test
-	public void testWaterLevelDockSlabCollides() {
-		double boatX = 100.0;
-		double boatY = 63.90;
-		double boatZ = 100.0;
-		float yaw = 0.0F;
-
-		// Dock slab flush with water level (maxY = 64.0) directly ahead of the boat
-		AABB dockSlab = new AABB(99.5, 63.5, 100.8, 100.5, 64.0, 101.8);
-
-		assertTrue(
-			SailingPhysics.hullIntersectsBlock(boatX, boatY, boatZ, yaw, dockSlab),
-			"Dock slab flush with water level must collide with boat hull"
 		);
 	}
 

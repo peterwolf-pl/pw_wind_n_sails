@@ -284,7 +284,7 @@ public final class WindAndSailsCommands {
 	private static int showWindInfo(CommandSourceStack source) {
 		ServerLevel level = source.getLevel();
 		long tick = level.getGameTime();
-		long dayTime = level.getDefaultClockTime();
+		long dayTime = level.getDayTime();
 		long dayIndex = Math.floorDiv(dayTime, 24000L);
 		int timeOfDay = (int) Math.floorMod(dayTime, 24000L);
 		WindState state = WindManager.getInstance().getWindState(level);

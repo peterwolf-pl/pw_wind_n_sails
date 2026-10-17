@@ -11,7 +11,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -48,14 +47,15 @@ public class AnchorItem extends Item {
 				player.setItemInHand(hand, new ItemStack(Items.LEAD));
 			}
 
-			player.swing(hand, SwingAnimation.DEFAULT, true);
+			player.swing(hand, true);
 			level.playSound(null, player.getX(), player.getY(), player.getZ(),
 				SoundEvents.SNOWBALL_THROW, SoundSource.PLAYERS, 0.8F, 0.7F);
 			level.playSound(null, player.getX(), player.getY(), player.getZ(),
 				SoundEvents.LEAD_TIED, SoundSource.PLAYERS, 1.0F, 1.0F);
 
-			player.sendOverlayMessage(
-				Component.translatable("hud.pw_wind_n_sails.anchor.thrown")
+			player.displayClientMessage(
+				Component.literal("§6[Kotwica]§r Rzucono kotwicę! Kliknij PPM na wybraną knagę łódki, aby ją przywiązać."),
+				true
 			);
 		}
 		return InteractionResult.SUCCESS;

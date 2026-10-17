@@ -55,7 +55,7 @@ public final class WindManager {
 
 	public void tickServer(ServerLevel level) {
 		long tick = level.getGameTime();
-		long dayTime = level.getDefaultClockTime();
+		long dayTime = level.getDayTime();
 		WindState state = this.getWindState(level);
 		if (!state.hasWorldSeed()) {
 			state.setSeed(level.getSeed() ^ (long) level.dimension().identifier().hashCode());
@@ -70,7 +70,7 @@ public final class WindManager {
 		// Synchronize periodically every 20 ticks (1 sec) or immediately when a gust starts/ends
 		if (tick % 20 == 0 || gustChanged) {
 			WindSyncPayload payload = createPayload(state, tick, dayTime);
-			for (ServerPlayer player : PlayerLookup.level(level)) {
+			for (ServerPlayer player : PlayerLookup.world(level)) {
 				ServerPlayNetworking.send(player, payload);
 			}
 		}
@@ -78,10 +78,10 @@ public final class WindManager {
 
 	public void syncAll(ServerLevel level) {
 		long tick = level.getGameTime();
-		long dayTime = level.getDefaultClockTime();
+		long dayTime = level.getDayTime();
 		WindState state = this.getWindState(level);
 		WindSyncPayload payload = createPayload(state, tick, dayTime);
-		for (ServerPlayer player : PlayerLookup.level(level)) {
+		for (ServerPlayer player : PlayerLookup.world(level)) {
 			ServerPlayNetworking.send(player, payload);
 		}
 	}
@@ -89,7 +89,7 @@ public final class WindManager {
 	public void syncToPlayer(ServerPlayer player) {
 		ServerLevel level = player.level();
 		long tick = level.getGameTime();
-		long dayTime = level.getDefaultClockTime();
+		long dayTime = level.getDayTime();
 		WindState state = this.getWindState(level);
 		ServerPlayNetworking.send(player, createPayload(state, tick, dayTime));
 	}
@@ -123,7 +123,7 @@ public final class WindManager {
 		DailyWindProfile pNext = state.getNextDayProfile();
 		String forecast = (pCurrent != null && pNext != null)
 			? DailyWindProfile.generateForecast(dayTime, pCurrent, pNext)
-			: "hud.pw_wind_n_sails.wind_hud.forecast.default";
+			: "Stabilna pogoda";
 
 		return new WindSyncPayload(
 			state.getBaseDirectionDeg(),
