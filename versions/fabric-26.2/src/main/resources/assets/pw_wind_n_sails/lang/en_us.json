@@ -1,0 +1,21 @@
+{
+  "itemGroup.pw_wind_n_sails.group": "Peterwolf's Wind & Sails",
+  "entity.pw_wind_n_sails.sailboat": "Sailing Boat",
+  "item.pw_wind_n_sails.sailboat": "Sailing Boat",
+  "item.pw_wind_n_sails.sailboat.desc": "Single-mast sailing boat steered with mouse, sheet trimmed with W/S, and weight balanced with A/D.",
+  "entity.pw_wind_n_sails.sport_sailboat": "Sport Sailboat",
+  "item.pw_wind_n_sails.sport_sailboat": "Sport Sailboat",
+  "item.pw_wind_n_sails.sport_sailboat.desc": "4.5m sleek white racing boat equipped with a tall aluminium mast, high-aspect mainsail, and working jib.",
+  "entity.pw_wind_n_sails.anchor": "Anchor",
+  "item.pw_wind_n_sails.anchor": "Anchor",
+  "item.pw_wind_n_sails.anchor.desc": "Throw the anchor into the water by right-clicking (45° angle upwards gives ~10 blocks range). Tether the lead to any cleat to moor securely.",
+  "block.pw_wind_n_sails.flagpole": "Flagpole",
+  "item.pw_wind_n_sails.flagpole": "Flagpole",
+  "item.pw_wind_n_sails.flagpole.desc": "7-block mast with a wind flag. Each pole is built with a random flag color.",
+  "key.categories.pw_wind_n_sails": "Peterwolf's Wind & Sails",
+  "key.pw_wind_n_sails.toggle_wind": "Toggle Wind Hints (TAB)",
+  "key.pw_wind_n_sails.toggle_sail": "Furl / Unfurl Sail (X)",
+  "key.pw_wind_n_sails.toggle_wind_hud": "Toggle Wind HUD (H)",
+  "message.pw_wind_n_sails.wind_hints_on": "Wind hints: ON (Look at water for wind streaks)",
+  "message.pw_wind_n_sails.wind_hints_off": "Wind hints: OFF"
+}

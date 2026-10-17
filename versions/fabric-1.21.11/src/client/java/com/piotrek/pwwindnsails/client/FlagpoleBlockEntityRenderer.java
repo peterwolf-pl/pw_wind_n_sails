@@ -1,0 +1,111 @@
+package com.piotrek.pwwindnsails.client;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import com.piotrek.pwwindnsails.WindAndSailsMod;
+import com.piotrek.pwwindnsails.block.FlagpoleBlock;
+import com.piotrek.pwwindnsails.block.entity.FlagpoleBlockEntity;
+import com.piotrek.pwwindnsails.wind.WindManager;
+import com.piotrek.pwwindnsails.wind.WindVector;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+
+public final class FlagpoleBlockEntityRenderer implements BlockEntityRenderer<FlagpoleBlockEntity, FlagpoleRenderState> {
+	public static final Identifier TEXTURE = WindAndSailsMod.id("textures/entity/flag.png");
+
+	private final FlagModel model;
+
+	public FlagpoleBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
+		this.model = new FlagModel(context.bakeLayer(WindAndSailsClient.FLAGPOLE_FLAG_LAYER));
+	}
+
+	@Override
+	public FlagpoleRenderState createRenderState() {
+		return new FlagpoleRenderState();
+	}
+
+	@Override
+	public void extractRenderState(
+		FlagpoleBlockEntity blockEntity,
+		FlagpoleRenderState state,
+		float partialTicks,
+		Vec3 cameraPosition,
+		@Nullable ModelFeatureRenderer.CrumblingOverlay breakProgress
+	) {
+		BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTicks, cameraPosition, breakProgress);
+		state.isTopPart = blockEntity.getBlockState().getValue(FlagpoleBlock.PART) == FlagpoleBlock.TOTAL_PARTS - 1;
+		Level level = blockEntity.getLevel();
+		if (level != null && state.isTopPart) {
+			BlockPos pos = blockEntity.getBlockPos();
+			WindVector wind = WindManager.getInstance().getWind(level, Vec3.atCenterOf(pos));
+			state.windDirectionDeg = wind.directionDeg();
+			state.windStrength = wind.strength();
+			state.gameTime = level.getGameTime() + partialTicks;
+			state.tint = blockEntity.getColor().getTextureDiffuseColor();
+
+			// Spatial hash to desynchronize flags across different locations
+			long h = (long) pos.getX() * 3129871L ^ (long) pos.getZ() * 116129781L ^ (long) pos.getY() * 4231L;
+			h = (h ^ (h >>> 16)) * 0x45d9f3bL;
+			h = (h ^ (h >>> 16)) * 0x45d9f3bL;
+			h = h ^ (h >>> 16);
+
+			state.phaseOffset = (float) ((h & 0xFFFF) / 65535.0 * 2.0 * Math.PI);
+			state.speedMultiplier = 0.88F + (float) (((h >>> 16) & 0xFF) / 255.0) * 0.24F; // 0.88x - 1.12x speed
+			state.flutterOffset = (float) (((h >>> 24) & 0xFF) / 255.0 * 2.0 * Math.PI);
+			state.amplitudeScale = 0.90F + (float) (((h >>> 8) & 0xFF) / 255.0) * 0.20F;  // 0.90x - 1.10x amplitude
+		}
+	}
+
+	@Override
+	public void submit(
+		FlagpoleRenderState state,
+		PoseStack stack,
+		SubmitNodeCollector collector,
+		CameraRenderState camera
+	) {
+		// Only the masthead (part 6) draws the cloth. Returning true from
+		// shouldRenderOffScreen() skips Sodium's normal block-entity pass.
+		if (!state.isTopPart) {
+			return;
+		}
+
+		stack.pushPose();
+		// One block below the masthead, so the cloth hangs on the top of the pole.
+		stack.translate(0.5D, -0.02D, 0.5D);
+
+		// Stream downwind. Yaw 0 in this space is +X, which is world yaw 270.
+		stack.mulPose(Axis.YP.rotationDegrees(270.0F - state.windDirectionDeg));
+
+		// Light wind keeps the hoist panel only slightly down, so the outer
+		// panels can fall to half the previous panel's height. Strong wind flies flat.
+		float windFactor = Mth.clamp((state.windStrength - 0.18F) / 0.40F, 0.0F, 1.0F);
+		float droopPitch = Mth.lerp(windFactor, 18.0F, 1.0F);
+		stack.mulPose(Axis.ZP.rotationDegrees(-droopPitch));
+
+		this.model.setupAnim(state);
+
+		collector.submitModel(
+			this.model,
+			state,
+			stack,
+			RenderTypes.entityCutout(TEXTURE),
+			state.lightCoords,
+			OverlayTexture.NO_OVERLAY,
+			state.tint,
+			null
+		);
+
+		stack.popPose();
+	}
+}
